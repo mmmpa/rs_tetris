@@ -191,7 +191,7 @@ mino!(D3, D0, No, No, D2, No, P1, &[&[0, 1], &[1, 1], &[1]]);
 //  o
 // **
 mino!(E0, E1, P1, No, E3, No, No, &[&[1], &[1, 1, 1]]);
-mino!(E1, E2, M1, P1, E0, M1, No, &[&[1], &[1], &[1, 1]]);
+mino!(E1, E2, M1, P1, E0, M1, No, &[&[1, 1], &[1], &[1]]);
 mino!(E2, E3, No, M1, E1, P1, M1, &[&[1, 1, 1], &[0, 0, 1]]);
 mino!(E3, E0, No, No, E2, No, P1, &[&[0, 1], &[0, 1], &[1, 1]]);
 
@@ -225,14 +225,14 @@ mino!(F3, F0, No, No, F2, No, P1, &[&[1, 1], &[0, 1], &[0, 1]]);
 //  *
 // *o
 //  *
-mino!(G0, G1, P1, No, G3, No, No, &[&[0, 1, 0], &[1, 1, 1]]);
+mino!(G0, G1, P1, No, G3, No, No, &[&[0, 1], &[1, 1, 1]]);
 mino!(G1, G2, M1, P1, G0, M1, No, &[&[1], &[1, 1], &[1]]);
-mino!(G2, G3, No, M1, G1, P1, M1, &[&[1, 1, 1], &[1]]);
+mino!(G2, G3, No, M1, G1, P1, M1, &[&[1, 1, 1], &[0, 1]]);
 mino!(G3, G0, No, No, G2, No, P1, &[&[0, 1], &[1, 1], &[0, 1]]);
 
 #[cfg(test)]
 mod tests {
-    use crate::{Mino, State, A0, B0, C0, D0};
+    use crate::{Mino, State, A0, B0, C0, D0, E0, F0, G0};
 
     fn print_test(state: &State, w: usize, h: usize) -> String {
         let mut canvas = vec![vec![0; w]; h];
@@ -417,6 +417,171 @@ mod tests {
         }
 
         let mut state = State::new(Mino::D0(D0), 1, 1);
+        for (i, now) in table.iter().rev().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.left();
+        }
+    }
+
+    #[test]
+    fn offset_mino_e() {
+        let table = [
+            "
+⬜⬜⬜⬜⬜
+⬜⬛⬜⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬛⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬛⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬛⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬛⬜⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+        ];
+
+        let mut state = State::new(Mino::E0(E0), 1, 1);
+        for (i, now) in table.iter().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.right();
+        }
+
+        let mut state = State::new(Mino::E0(E0), 1, 1);
+        for (i, now) in table.iter().rev().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.left();
+        }
+    }
+
+    #[test]
+    fn offset_mino_f() {
+        let table = [
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬛⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬛⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬛⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬛⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬛⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+        ];
+
+        let mut state = State::new(Mino::F0(F0), 1, 1);
+        for (i, now) in table.iter().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.right();
+        }
+
+        let mut state = State::new(Mino::F0(F0), 1, 1);
+        for (i, now) in table.iter().rev().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.left();
+        }
+    }
+
+    #[test]
+    fn offset_mino_g() {
+        let table = [
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬛⬛⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬛⬛⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬜⬜⬜⬜
+",
+            "
+⬜⬜⬜⬜⬜
+⬜⬜⬛⬜⬜
+⬜⬛⬛⬛⬜
+⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜
+",
+        ];
+
+        let mut state = State::new(Mino::G0(G0), 1, 1);
+        for (i, now) in table.iter().enumerate() {
+            let s = print_test(&state, 5, 5);
+            assert_eq!(now, &&s, "\n{} {}", i, s);
+            state = state.right();
+        }
+
+        let mut state = State::new(Mino::G0(G0), 1, 1);
         for (i, now) in table.iter().rev().enumerate() {
             let s = print_test(&state, 5, 5);
             assert_eq!(now, &&s, "\n{} {}", i, s);

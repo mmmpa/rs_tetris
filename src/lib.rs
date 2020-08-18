@@ -50,14 +50,12 @@ pub enum Length {
 
 type NextMino = (Mino, Offset);
 
-pub trait MinosInner {}
+pub trait MinoExt {
+    type NextRight: MinoExt + Into<Mino>;
+    type NextLeft: MinoExt + Into<Mino>;
 
-pub trait Minos {
-    type NextRight: MinosInner;
-    type NextLeft: MinosInner;
-
-    fn right(self) -> (Self::NextRight, Offset);
-    fn left(self) -> (Self::NextLeft, Offset);
+    fn right(self) -> RotatedMino<Self::NextRight>;
+    fn left(self) -> RotatedMino<Self::NextLeft>;
     fn cells(&self) -> &[&[u8]];
 }
 
@@ -65,28 +63,27 @@ pub trait Minos {
 macro_rules! mino_variant {
     ( $($element:tt),* $(,)? ) => {
         $(pub struct $element;)*
-        $(impl MinosInner for $element {})*
 
         pub enum Mino {
             $($element($element),)*
         }
 
-        impl From<$elemet> for Mino {
-            fn from(inner: self) -> Self {
+        $(impl From<$element> for Mino {
+            fn from(inner: $element) -> Self {
                 Self::$element(inner)
             }
-        }
+        })*
 
         impl Mino {
-            pub fn left(self) -> (Mino, Offset) {
+            pub fn right(self) -> (Mino, Offset) {
                 match self {
-                    $(Mino::$element(v) => v.left(),)*
+                    $(Mino::$element(v) => v.right().into(),)*
                 }
             }
 
-            pub fn right(self) -> (Mino, Offset) {
+            pub fn left(self) -> (Mino, Offset) {
                 match self {
-                    $(Mino::$element(v) => v.right(),)*
+                    $(Mino::$element(v) => v.left().into(),)*
                 }
             }
 
@@ -101,19 +98,43 @@ macro_rules! mino_variant {
 
 mino_variant!(A0, A1, A2, A3, B0, C0, C1, C2, C3, D0, D1, D2, D3, E0, E1, E2, E3, F0, F1, F2, F3, G0, G1, G2, G3,);
 
+pub struct RotatedMino<T: Into<Mino>> {
+    mino: T,
+    offset: Offset,
+}
+
+impl<T: Into<Mino>> From<RotatedMino<T>> for (Mino, Offset) {
+    fn from(r: RotatedMino<T>) -> Self {
+        let RotatedMino { mino, offset } = r;
+        (mino.into(), offset)
+    }
+}
+
 #[macro_export]
 macro_rules! mino {
     ( $now:tt, $right:tt, $right_x:tt, $right_y:tt, $left:tt, $left_x:tt, $left_y:tt, $cells:expr ) => {
-        impl Minos for $now {
+        impl MinoExt for $now {
             type NextRight = $right;
             type NextLeft = $left;
 
-            fn right(self) -> (Self::NextRight, Offset) {
-                next_mino($right, Length::$right_x, Length::$right_y)
+            fn right(self) -> RotatedMino<Self::NextRight> {
+                RotatedMino {
+                    mino: $right,
+                    offset: Offset {
+                        x: Length::$right_x,
+                        y: Length::$right_y,
+                    },
+                }
             }
 
-            fn left(self) -> (Self::NextLeft, Offset) {
-                next_mino($left, Length::$left_x, Length::$left_y)
+            fn left(self) -> RotatedMino<Self::NextLeft> {
+                RotatedMino {
+                    mino: $left,
+                    offset: Offset {
+                        x: Length::$left_x,
+                        y: Length::$left_y,
+                    },
+                }
             }
 
             fn cells(&self) -> &[&[u8]] {
@@ -121,17 +142,6 @@ macro_rules! mino {
             }
         }
     };
-}
-
-fn next_mino<T>(next: T, x: Length, y: Length) -> (T, Offset) {
-    (next, Offset { x, y })
-}
-
-fn test(v: Mino) {
-    let (next, _) = v.left();
-    let (next, _) = next.left();
-    let (next, _) = next.left();
-    let (next, _) = next.left();
 }
 
 // ⬛⬜⬛⬛

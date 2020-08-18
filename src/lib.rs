@@ -17,6 +17,17 @@ enum Length {
 
 type NextMino<T> = (Mino<T>, Offset);
 
+pub trait Minos {
+    type RightNext: Minos;
+    type LeftNext: Minos;
+
+    fn right(self) -> NextMino<Self::RightNext>;
+
+    fn left(self) -> NextMino<Self::LeftNext>;
+
+    fn cells(&self) -> &[&[u8]];
+}
+
 #[macro_export]
 macro_rules! mino {
     ( $now:tt, $right:tt, $right_x:tt, $right_y:tt, $left:tt, $left_x:tt, $left_y:tt, $cells:expr ) => {

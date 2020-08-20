@@ -2,6 +2,7 @@ mod form;
 mod mino;
 mod plain_new;
 mod rotate;
+pub mod rotation;
 mod rotation_state;
 pub mod srs;
 

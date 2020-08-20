@@ -164,6 +164,7 @@ mino!(G3, G0, No, No, G2, No, P1, &[&[0, 1], &[1, 1], &[0, 1]]);
 #[cfg(test)]
 mod tests {
     use crate::{Mino, State, A0, B0, C0, D0, E0, F0, G0};
+    use std::prelude::v1::*;
 
     fn print_test(state: &State, w: usize, h: usize) -> String {
         let mut canvas = vec![vec![0; w]; h];

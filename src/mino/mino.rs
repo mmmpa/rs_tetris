@@ -1,152 +1,385 @@
 use crate::*;
 
-pub trait MinoBase: PlaneNew {
-    type Form: MinoForm;
-    type Now: RotationState;
-    type Right: RotationState;
-    type Side: RotationState;
-    type Left: RotationState;
-}
-
-pub struct NewMino<MT: PlaneNew, MF: MinoForm, Rot: RotationState> {
-    m: MT,
-    t: MF,
-    rot: Rot,
-}
-
-impl<MT: PlaneNew, MF: MinoForm, Rot: RotationState> PlaneNew for NewMino<MT, MF, Rot> {
-    fn plane() -> Self {
-        Self {
-            m: MT::plane(),
-            t: MF::plane(),
-            rot: Rot::plane(),
-        }
-    }
-}
-macro_rules! define_mino {
-    ( $mino_type:tt, $mino_form:tt ) => {
-        impl MinoBase for NewMino<$mino_type, $mino_form, State0> {
-            type Form = $mino_form;
-            type Now = State0;
-            type Right = StateR;
-            type Side = State2;
-            type Left = StateL;
-        }
-
-        impl MinoBase for NewMino<$mino_type, $mino_form, StateR> {
-            type Form = $mino_form;
-            type Now = StateR;
-            type Right = State2;
-            type Side = StateL;
-            type Left = State0;
-        }
-
-        impl MinoBase for NewMino<$mino_type, $mino_form, State2> {
-            type Form = $mino_form;
-            type Now = State2;
-            type Right = StateL;
-            type Side = State0;
-            type Left = StateR;
-        }
-
-        impl MinoBase for NewMino<$mino_type, $mino_form, StateL> {
-            type Form = $mino_form;
-            type Now = StateL;
-            type Right = State0;
-            type Side = StateR;
-            type Left = State2;
-        }
-
-        impl Right for NewMino<$mino_type, $mino_form, State0> {
-            type Next = NewMino<$mino_type, $mino_form, StateR>;
-            type Srs = srs::Offset<$mino_form, State0, StateR>;
-        }
-
-        impl Right for NewMino<$mino_type, $mino_form, StateR> {
-            type Next = NewMino<$mino_type, $mino_form, State2>;
-            type Srs = srs::Offset<$mino_form, StateR, State2>;
-        }
-
-        impl Right for NewMino<$mino_type, $mino_form, State2> {
-            type Next = NewMino<$mino_type, $mino_form, StateL>;
-            type Srs = srs::Offset<$mino_form, State2, StateL>;
-        }
-
-        impl Right for NewMino<$mino_type, $mino_form, StateL> {
-            type Next = NewMino<$mino_type, $mino_form, State0>;
-            type Srs = srs::Offset<$mino_form, StateL, State0>;
-        }
-
-        impl Left for NewMino<$mino_type, $mino_form, State0> {
-            type Next = NewMino<$mino_type, $mino_form, StateL>;
-            type Srs = srs::Offset<$mino_form, State0, StateL>;
-        }
-
-        impl Left for NewMino<$mino_type, $mino_form, StateL> {
-            type Next = NewMino<$mino_type, $mino_form, State2>;
-            type Srs = srs::Offset<$mino_form, StateL, State2>;
-        }
-
-        impl Left for NewMino<$mino_type, $mino_form, State2> {
-            type Next = NewMino<$mino_type, $mino_form, StateR>;
-            type Srs = srs::Offset<$mino_form, State2, StateR>;
-        }
-
-        impl Left for NewMino<$mino_type, $mino_form, StateR> {
-            type Next = NewMino<$mino_type, $mino_form, State0>;
-            type Srs = srs::Offset<$mino_form, StateR, State0>;
-        }
-    };
-}
-
-define_markers!(A, B, C, D, E, F, G);
-
-define_mino!(A, BarTypeMino);
-define_mino!(B, NormalTypeMino);
-define_mino!(C, NormalTypeMino);
-define_mino!(D, NormalTypeMino);
-define_mino!(E, NormalTypeMino);
-define_mino!(F, NormalTypeMino);
-define_mino!(G, NormalTypeMino);
-
 pub trait Right: MinoBase {
     type Next: MinoBase<Form = Self::Form, Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now> + Right + Left;
-    type Srs: srs::OffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
+    type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
+    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
-    fn right(&self) -> Self::Next {
-        Self::Next::plane()
+    fn right(&self) -> (Self::Next, &[(i8, i8)]) {
+        let mut next = Self::Next::new_with_t(self.pos());
+        let offset = Self::Rotation::offset();
+        next.offset(offset);
+
+        let srs = Self::Srs::offset();
+
+        (next, srs)
     }
 }
 
 pub trait Left: MinoBase {
     type Next: MinoBase<Form = Self::Form, Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side> + Right + Left;
-    type Srs: srs::OffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
+    type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
+    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
-    fn left(&self) -> Self::Next {
-        Self::Next::plane()
+    fn left(&self) -> (Self::Next, &[(i8, i8)]) {
+        let mut next = Self::Next::new_with_t(self.pos());
+        let offset = Self::Rotation::offset();
+        next.offset(offset);
+
+        let srs = Self::Srs::offset();
+
+        (next, srs)
     }
+}
+pub struct NewState {
+    x: i8,
+    y: i8,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::mino::mino::*;
     use crate::{BarTypeMino, State0};
+    use std::prelude::v1::*;
+
+    macro_rules! test_rendering {
+        ( $table:tt, $mino:tt, $form:tt, $x:tt, $y:tt, $canvas_w:tt, $canvas_h:tt ) => {
+            let mut it = $table.iter();
+
+            let mut mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.right();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.right();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.right();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.right();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            //
+
+            let mut it = $table.iter().rev();
+
+            let mut mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.left();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.left();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.left();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+
+            let (mino, _) = mino.left();
+            let now = it.next().unwrap();
+            let s = print_test(&mino, $canvas_w, $canvas_h);
+            assert_eq!(now, &&s, "\n{}", s);
+        };
+    }
+
+    fn print_test(state: &impl MinoBase, w: usize, h: usize) -> String {
+        let mut canvas = vec![vec!["⬜"; w]; h];
+
+        let (x, y) = state.pos();
+
+        state.cells().iter().for_each(|(ox, oy)| {
+            canvas[(y + oy) as usize][(x + ox) as usize] = "⬛";
+        });
+
+        canvas.into_iter().flat_map(|s| s).collect::<Vec<_>>().join("")
+    }
 
     #[test]
-    fn test() {
-        let m = NewMino {
-            m: A,
-            t: BarTypeMino,
-            rot: State0,
-        };
+    fn offset_mino_a() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬛⬛⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜⬜⬜\
+            ",
+        ];
 
-        let m = m.left();
-        let m = m.left();
-        let m = m.left();
-        let m = m.left();
-        let m = m.right();
-        let m = m.right();
-        let m = m.right();
-        let m = m.right();
+        test_rendering!(table, A, BarTypeMino, 2, 3, 7, 7);
+    }
+    #[test]
+    fn offset_mino_c() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬜⬛⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬜⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+        ];
+
+        test_rendering!(table, C, NormalTypeMino, 1, 1, 5, 5);
+    }
+
+    #[test]
+    fn offset_mino_d() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬛⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+        ];
+
+        test_rendering!(table, D, NormalTypeMino, 1, 1, 5, 5);
+    }
+
+    #[test]
+    fn offset_mino_e() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬜⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬛⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬜⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+        ];
+
+        test_rendering!(table, E, NormalTypeMino, 1, 1, 5, 5);
+    }
+
+    #[test]
+    fn offset_mino_f() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬛⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬛⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬛⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+        ];
+
+        test_rendering!(table, F, NormalTypeMino, 1, 1, 5, 5);
+    }
+
+    #[test]
+    fn offset_mino_g() {
+        let table = [
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬛⬛⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬛⬛⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+            "\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬛⬜⬜\
+                ⬜⬛⬛⬛⬜\
+                ⬜⬜⬜⬜⬜\
+                ⬜⬜⬜⬜⬜\
+            ",
+        ];
+
+        test_rendering!(table, G, NormalTypeMino, 1, 1, 5, 5);
     }
 }

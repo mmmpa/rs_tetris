@@ -99,49 +99,7 @@ macro_rules! define_mino {
     };
 }
 
-pub struct A;
-pub struct B;
-pub struct C;
-pub struct D;
-pub struct E;
-pub struct F;
-pub struct G;
-
-impl PlaneNew for A {
-    fn plane() -> Self {
-        A
-    }
-}
-impl PlaneNew for B {
-    fn plane() -> Self {
-        B
-    }
-}
-impl PlaneNew for C {
-    fn plane() -> Self {
-        C
-    }
-}
-impl PlaneNew for D {
-    fn plane() -> Self {
-        D
-    }
-}
-impl PlaneNew for E {
-    fn plane() -> Self {
-        E
-    }
-}
-impl PlaneNew for F {
-    fn plane() -> Self {
-        F
-    }
-}
-impl PlaneNew for G {
-    fn plane() -> Self {
-        G
-    }
-}
+define_markers!(A, B, C, D, E, F, G);
 
 define_mino!(A, BarTypeMino);
 define_mino!(B, NormalTypeMino);
@@ -173,6 +131,7 @@ pub trait Left: MinoBase {
 mod tests {
     use crate::mino::mino::*;
     use crate::{BarTypeMino, State0};
+
     #[test]
     fn test() {
         let m = NewMino {

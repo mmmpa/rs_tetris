@@ -59,42 +59,42 @@ macro_rules! define_mino {
 
         impl Right for NewMino<$mino_type, $mino_form, State0> {
             type Next = NewMino<$mino_type, $mino_form, StateR>;
-            type SrsOffset = SrsOffset<$mino_form, State0, StateR>;
+            type Srs = srs::Offset<$mino_form, State0, StateR>;
         }
 
         impl Right for NewMino<$mino_type, $mino_form, StateR> {
             type Next = NewMino<$mino_type, $mino_form, State2>;
-            type SrsOffset = SrsOffset<$mino_form, StateR, State2>;
+            type Srs = srs::Offset<$mino_form, StateR, State2>;
         }
 
         impl Right for NewMino<$mino_type, $mino_form, State2> {
             type Next = NewMino<$mino_type, $mino_form, StateL>;
-            type SrsOffset = SrsOffset<$mino_form, State2, StateL>;
+            type Srs = srs::Offset<$mino_form, State2, StateL>;
         }
 
         impl Right for NewMino<$mino_type, $mino_form, StateL> {
             type Next = NewMino<$mino_type, $mino_form, State0>;
-            type SrsOffset = SrsOffset<$mino_form, StateL, State0>;
+            type Srs = srs::Offset<$mino_form, StateL, State0>;
         }
 
         impl Left for NewMino<$mino_type, $mino_form, State0> {
             type Next = NewMino<$mino_type, $mino_form, StateL>;
-            type SrsOffset = SrsOffset<$mino_form, State0, StateL>;
+            type Srs = srs::Offset<$mino_form, State0, StateL>;
         }
 
         impl Left for NewMino<$mino_type, $mino_form, StateL> {
             type Next = NewMino<$mino_type, $mino_form, State2>;
-            type SrsOffset = SrsOffset<$mino_form, StateL, State2>;
+            type Srs = srs::Offset<$mino_form, StateL, State2>;
         }
 
         impl Left for NewMino<$mino_type, $mino_form, State2> {
             type Next = NewMino<$mino_type, $mino_form, StateR>;
-            type SrsOffset = SrsOffset<$mino_form, State2, StateR>;
+            type Srs = srs::Offset<$mino_form, State2, StateR>;
         }
 
         impl Left for NewMino<$mino_type, $mino_form, StateR> {
             type Next = NewMino<$mino_type, $mino_form, State0>;
-            type SrsOffset = SrsOffset<$mino_form, StateR, State0>;
+            type Srs = srs::Offset<$mino_form, StateR, State0>;
         }
     };
 }
@@ -153,7 +153,7 @@ define_mino!(G, NormalTypeMino);
 
 pub trait Right: MinoBase {
     type Next: MinoBase<Form = Self::Form, Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now> + Right + Left;
-    type SrsOffset: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
+    type Srs: srs::OffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
     fn right(&self) -> Self::Next {
         Self::Next::plane()
@@ -162,7 +162,7 @@ pub trait Right: MinoBase {
 
 pub trait Left: MinoBase {
     type Next: MinoBase<Form = Self::Form, Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side> + Right + Left;
-    type SrsOffset: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
+    type Srs: srs::OffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
     fn left(&self) -> Self::Next {
         Self::Next::plane()

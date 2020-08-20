@@ -10,166 +10,35 @@ pub trait RotationOffsetExe {
     fn offset() -> (i8, i8);
 }
 
-// Bar
+#[macro_export]
+macro_rules! define_rotation_offset {
+    ( $form:tt, $from:tt => $to:tt, $pos:tt ) => {
+        impl RotationOffsetExe for RotationOffset<$form, $from, $to> {
+            type Form = $form;
+            type Now = $from;
+            type Next = $to;
 
-impl RotationOffsetExe for RotationOffset<BarTypeMino, State0, StateR> {
-    type Form = BarTypeMino;
-    type Now = State0;
-    type Next = StateR;
-
-    fn offset() -> (i8, i8) {
-        (1, -1)
-    }
+            fn offset() -> (i8, i8) {
+                $pos
+            }
+        }
+    };
 }
 
-impl RotationOffsetExe for RotationOffset<BarTypeMino, StateR, State0> {
-    type Form = BarTypeMino;
-    type Now = StateR;
-    type Next = State0;
+define_rotation_offset!(BarTypeMino, State0 => StateR, (1, -1));
+define_rotation_offset!(BarTypeMino, StateR => State0, (-1, 1));
+define_rotation_offset!(BarTypeMino, StateR => State2, (-2, 1));
+define_rotation_offset!(BarTypeMino, State2 => StateR, (2, -1));
+define_rotation_offset!(BarTypeMino, State2 => StateL, (2, -2));
+define_rotation_offset!(BarTypeMino, StateL => State2, (-2, 2));
+define_rotation_offset!(BarTypeMino, StateL => State0, (-1, 2));
+define_rotation_offset!(BarTypeMino, State0 => StateL, (1, -2));
 
-    fn offset() -> (i8, i8) {
-        (-1, 1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, StateR, State2> {
-    type Form = BarTypeMino;
-    type Now = StateR;
-    type Next = State2;
-
-    fn offset() -> (i8, i8) {
-        (-2, 1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, State2, StateR> {
-    type Form = BarTypeMino;
-    type Now = State2;
-    type Next = StateR;
-
-    fn offset() -> (i8, i8) {
-        (2, -1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, State2, StateL> {
-    type Form = BarTypeMino;
-    type Now = State2;
-    type Next = StateL;
-
-    fn offset() -> (i8, i8) {
-        (2, -2)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, StateL, State2> {
-    type Form = BarTypeMino;
-    type Now = StateL;
-    type Next = State2;
-
-    fn offset() -> (i8, i8) {
-        (-2, 2)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, StateL, State0> {
-    type Form = BarTypeMino;
-    type Now = StateL;
-    type Next = State0;
-
-    fn offset() -> (i8, i8) {
-        (-1, 2)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<BarTypeMino, State0, StateL> {
-    type Form = BarTypeMino;
-    type Now = State0;
-    type Next = StateL;
-
-    fn offset() -> (i8, i8) {
-        (1, -2)
-    }
-}
-
-// Other than bar
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, State0, StateR> {
-    type Form = NormalTypeMino;
-    type Now = State0;
-    type Next = StateR;
-
-    fn offset() -> (i8, i8) {
-        (1, 0)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, StateR, State0> {
-    type Form = NormalTypeMino;
-    type Now = StateR;
-    type Next = State0;
-
-    fn offset() -> (i8, i8) {
-        (-1, 0)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, StateR, State2> {
-    type Form = NormalTypeMino;
-    type Now = StateR;
-    type Next = State2;
-
-    fn offset() -> (i8, i8) {
-        (-1, 1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, State2, StateR> {
-    type Form = NormalTypeMino;
-    type Now = State2;
-    type Next = StateR;
-
-    fn offset() -> (i8, i8) {
-        (1, -1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, State2, StateL> {
-    type Form = NormalTypeMino;
-    type Now = State2;
-    type Next = StateL;
-
-    fn offset() -> (i8, i8) {
-        (0, -1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, StateL, State2> {
-    type Form = NormalTypeMino;
-    type Now = StateL;
-    type Next = State2;
-
-    fn offset() -> (i8, i8) {
-        (0, 1)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, StateL, State0> {
-    type Form = NormalTypeMino;
-    type Now = StateL;
-    type Next = State0;
-
-    fn offset() -> (i8, i8) {
-        (0, 0)
-    }
-}
-
-impl RotationOffsetExe for RotationOffset<NormalTypeMino, State0, StateL> {
-    type Form = NormalTypeMino;
-    type Now = State0;
-    type Next = StateL;
-
-    fn offset() -> (i8, i8) {
-        (0, 0)
-    }
-}
+define_rotation_offset!(NormalTypeMino, State0 => StateR, (1, 0));
+define_rotation_offset!(NormalTypeMino, StateR => State0, (-1, 0));
+define_rotation_offset!(NormalTypeMino, StateR => State2, (-1, 1));
+define_rotation_offset!(NormalTypeMino, State2 => StateR, (1, -1));
+define_rotation_offset!(NormalTypeMino, State2 => StateL, (0, -1));
+define_rotation_offset!(NormalTypeMino, StateL => State2, (0, 1));
+define_rotation_offset!(NormalTypeMino, StateL => State0, (0, 0));
+define_rotation_offset!(NormalTypeMino, State0 => StateL, (0, 0));

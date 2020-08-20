@@ -31,14 +31,10 @@ pub trait Left: MinoBase {
         (next, srs)
     }
 }
-pub struct NewState {
-    x: i8,
-    y: i8,
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::mino::mino::*;
+    use crate::mino::rotation::*;
     use crate::{BarTypeMino, State0};
     use std::prelude::v1::*;
 
@@ -109,8 +105,8 @@ mod tests {
 
         let (x, y) = state.pos();
 
-        state.cells().iter().for_each(|(ox, oy)| {
-            canvas[(y + oy) as usize][(x + ox) as usize] = "⬛";
+        state.mut_with_absolute_cells(|x, y| {
+            canvas[y as usize][x as usize] = "⬛";
         });
 
         canvas.into_iter().flat_map(|s| s).collect::<Vec<_>>().join("")
@@ -166,7 +162,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, A, BarTypeMino, 2, 3, 7, 7);
+        test_rendering!(table, MinoI, BarTypeMino, 2, 3, 7, 7);
     }
     #[test]
     fn offset_mino_c() {
@@ -208,7 +204,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, C, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoS, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -251,7 +247,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, D, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoZ, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -294,7 +290,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, E, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoJ, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -337,7 +333,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, F, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoL, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -380,6 +376,6 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, G, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoT, NormalTypeMino, 1, 1, 5, 5);
     }
 }

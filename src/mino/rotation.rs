@@ -1,7 +1,8 @@
 use crate::*;
 
-pub trait Right: MinoBase {
-    type Next: MinoBase<Form = Self::Form, Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now> + Right + Left;
+/// Return state after turning right and offsets list for retry in failure.
+pub trait Right: MinoCore {
+    type Next: MinoCore<Form = Self::Form, Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now> + Right + Left;
     type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
@@ -16,8 +17,9 @@ pub trait Right: MinoBase {
     }
 }
 
-pub trait Left: MinoBase {
-    type Next: MinoBase<Form = Self::Form, Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side> + Right + Left;
+/// Return state after turning left and offsets list for retry in failure.
+pub trait Left: MinoCore {
+    type Next: MinoCore<Form = Self::Form, Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side> + Right + Left;
     type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
@@ -42,7 +44,7 @@ mod tests {
         ( $table:tt, $mino:tt, $form:tt, $x:tt, $y:tt, $canvas_w:tt, $canvas_h:tt ) => {
             let mut it = $table.iter();
 
-            let mut mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);
@@ -72,7 +74,7 @@ mod tests {
 
             let mut it = $table.iter().rev();
 
-            let mut mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);
@@ -100,10 +102,8 @@ mod tests {
         };
     }
 
-    fn print_test(state: &impl MinoBase, w: usize, h: usize) -> String {
+    fn print_test(state: &impl MinoCore, w: usize, h: usize) -> String {
         let mut canvas = vec![vec!["⬜"; w]; h];
-
-        let (x, y) = state.pos();
 
         state.mut_with_absolute_cells(|x, y| {
             canvas[y as usize][x as usize] = "⬛";

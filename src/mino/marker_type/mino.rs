@@ -2,7 +2,7 @@ use crate::*;
 
 define_markers!(MinoI, MinoO, MinoS, MinoZ, MinoJ, MinoL, MinoT);
 
-pub trait MinoType: PlaneNew {}
+pub trait MinoType: NewMarker {}
 
 impl MinoType for MinoI {}
 impl MinoType for MinoO {}

@@ -2,6 +2,9 @@ use crate::*;
 
 pub struct RotationOffset<T: MinoForm, A: RotationState, B: RotationState>(T, A, B);
 
+/// Return offsets after rotation for minos from state to state.
+///
+/// Associated types are just for binding types in other trait definition.
 pub trait RotationOffsetExe {
     type Form: MinoForm;
     type Now: RotationState;

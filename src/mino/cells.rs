@@ -12,6 +12,7 @@ pub trait CellExe {
 #[macro_export]
 macro_rules! define_cells {
     ( $mino:tt, $state:tt, $cells:expr ) => {
+        /// Associated types are just for binding types in other trait definition.
         impl CellExe for Cell<$mino, $state> {
             type Mino = $mino;
             type State = $state;

@@ -2,7 +2,7 @@ use crate::*;
 
 define_markers!(State0, StateR, StateL, State2);
 
-pub trait RotationState: PlaneNew {}
+pub trait RotationState: NewMarker {}
 
 impl RotationState for State0 {}
 impl RotationState for StateR {}

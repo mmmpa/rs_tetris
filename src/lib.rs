@@ -1,4 +1,3 @@
-#![allow(warnings)]
 #![no_std]
 
 #[cfg(test)]

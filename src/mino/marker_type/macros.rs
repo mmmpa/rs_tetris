@@ -3,8 +3,8 @@ macro_rules! define_markers {
         $(
             pub struct $element;
 
-            impl PlaneNew for $element{
-                fn plane() -> Self{
+            impl NewMarker for $element{
+                fn new() -> Self{
                     $element
                 }
             }

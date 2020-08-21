@@ -1,10 +1,9 @@
 use crate::*;
-use core::slice::Iter;
 
 pub struct MinoState<MT: MinoType, MF: MinoForm, Rot: RotationState> {
-    mino: MT,
-    form: MF,
-    state: Rot,
+    _mino: MT,
+    _form: MF,
+    _state: Rot,
     x: i8,
     y: i8,
 }
@@ -17,9 +16,9 @@ pub trait NewWithPos {
 impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT, MF, Rot> {
     fn new_with(x: i8, y: i8) -> Self {
         Self {
-            mino: MT::plane(),
-            form: MF::plane(),
-            state: Rot::plane(),
+            _mino: MT::new(),
+            _form: MF::new(),
+            _state: Rot::new(),
             x,
             y,
         }
@@ -31,7 +30,8 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
     }
 }
 
-pub trait MinoBase: NewWithPos {
+/// Provide a mino information for rendering.
+pub trait MinoCore: NewWithPos {
     type Mino;
     type Form: MinoForm;
     type Now: RotationState;
@@ -102,7 +102,7 @@ macro_rules! define_mino_rotation {
 
 macro_rules! define_mino {
     ( $mino_type:tt, $mino_form:tt ) => {
-        impl MinoBase for MinoState<$mino_type, $mino_form, State0> {
+        impl MinoCore for MinoState<$mino_type, $mino_form, State0> {
             type Mino = $mino_type;
             type Form = $mino_form;
             type Now = State0;
@@ -114,7 +114,7 @@ macro_rules! define_mino {
             define_mino_common!();
         }
 
-        impl MinoBase for MinoState<$mino_type, $mino_form, StateR> {
+        impl MinoCore for MinoState<$mino_type, $mino_form, StateR> {
             type Mino = $mino_type;
             type Form = $mino_form;
             type Now = StateR;
@@ -126,7 +126,7 @@ macro_rules! define_mino {
             define_mino_common!();
         }
 
-        impl MinoBase for MinoState<$mino_type, $mino_form, State2> {
+        impl MinoCore for MinoState<$mino_type, $mino_form, State2> {
             type Mino = $mino_type;
             type Form = $mino_form;
             type Now = State2;
@@ -138,7 +138,7 @@ macro_rules! define_mino {
             define_mino_common!();
         }
 
-        impl MinoBase for MinoState<$mino_type, $mino_form, StateL> {
+        impl MinoCore for MinoState<$mino_type, $mino_form, StateL> {
             type Mino = $mino_type;
             type Form = $mino_form;
             type Now = StateL;

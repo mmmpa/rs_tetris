@@ -65,14 +65,14 @@ macro_rules! define_mino_common {
 
         fn offset(&mut self, xy: (i8, i8)) {
             self.x += xy.0;
-            self.y += xy.1;
+            self.y -= xy.1;
         }
 
         fn mut_with_absolute_cells<F>(&self, mut f: F)
         where
             F: FnMut(i8, i8),
         {
-            Self::Cell::cells().iter().for_each(|(x, y)| f(x + self.x, y + self.y));
+            Self::Cell::cells().iter().for_each(|(x, y)| f(self.x + x, self.y - y));
         }
 
         fn test_with_absolute_cells<F, T>(&self, f: F) -> bool
@@ -80,7 +80,7 @@ macro_rules! define_mino_common {
             F: Fn(i8, i8) -> bool,
         {
             for (x, y) in Self::Cell::cells().iter() {
-                if f(x + self.x, y + self.y) {
+                if f(self.x + x, self.y - y) {
                     return true;
                 }
             }

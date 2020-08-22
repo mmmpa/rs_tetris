@@ -47,7 +47,7 @@ pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
     /// for cloning
     fn pos(&self) -> (i8, i8);
 
-    /// for moving
+    /// for moving and rotation
     fn absolute(&mut self, xy: (i8, i8));
     fn offset(&mut self, xy: (i8, i8));
 

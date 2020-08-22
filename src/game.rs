@@ -413,6 +413,40 @@ mod tests {
             println!("to 2");
             println!("{}", print_field(&game, &mino, 0..6));
         }
+
+        println!("from L");
+        {
+            mino = game.step(mino, AbsoluteRotation::StateL);
+            mino = game.step(mino, AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, &mino, 0..6));
+            mino = game.step(mino, Rotation::Left);
+            println!("to 2");
+            println!("{}", print_field(&game, &mino, 0..6));
+
+            mino = game.step(mino, AbsoluteRotation::StateL);
+            mino = game.step(mino, AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, &mino, 0..6));
+            mino = game.step(mino, Rotation::Right);
+            println!("to 0");
+            println!("{}", print_field(&game, &mino, 0..6));
+        }
+
+        println!("from R");
+        {
+            mino = game.step(mino, AbsoluteRotation::StateR);
+            mino = game.step(mino, AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, &mino, 0..6));
+            mino = game.step(mino, Rotation::Left);
+            println!("to 0");
+            println!("{}", print_field(&game, &mino, 0..6));
+
+            mino = game.step(mino, AbsoluteRotation::StateR);
+            mino = game.step(mino, AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, &mino, 0..6));
+            mino = game.step(mino, Rotation::Right);
+            println!("to 2");
+            println!("{}", print_field(&game, &mino, 0..6));
+        }
     }
 }
 #[cfg(test)]

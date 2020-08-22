@@ -22,6 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn serve_game() {
+    return;
     print!("\x1b[2J");
 
     let mut game = Game::new();
@@ -38,6 +39,14 @@ async fn serve_game() {
 
 async fn serve_key() {
     loop {
+        unsafe {
+            let device_state = DeviceState::new();
+            let mouse: MouseState = device_state.get_mouse();
+            println!("Current Mouse Coordinates: {:?}", mouse.coords);
+            let keys: Vec<Keycode> = device_state.get_keys();
+            println!("Is A pressed? {}", keys.contains(&Keycode::A));
+        }
+
         tokio::time::delay_for(tokio::time::Duration::from_millis(50)).await;
     }
 }

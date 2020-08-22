@@ -179,3 +179,76 @@ define_mino!(MinoZ, NormalTypeMino);
 define_mino!(MinoJ, NormalTypeMino);
 define_mino!(MinoL, NormalTypeMino);
 define_mino!(MinoT, NormalTypeMino);
+
+macro_rules! define_minos {
+    ( $( $name:tt => $state:path ),* $(,)? ) => {
+        #[derive(Debug,  Copy, Clone)]
+        pub enum Minos {
+            $( $name($state), )*
+        }
+        $(
+            impl Into<Minos> for $state {
+                fn into(self) -> Minos {
+                    Minos::$name(self)
+                }
+            }
+        )*
+    }
+}
+
+define_minos!(
+    Is0 => MinoState<MinoI, BarTypeMino, State0>,
+    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
+    Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
+    Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
+    Js0 => MinoState<MinoJ, NormalTypeMino, State0>,
+    Ls0 => MinoState<MinoL, NormalTypeMino, State0>,
+    Ts0 => MinoState<MinoT, NormalTypeMino, State0>,
+    IsR => MinoState<MinoI, BarTypeMino, StateR>,
+    OsR => MinoState<MinoO, NormalTypeMino, StateR>,
+    SsR => MinoState<MinoS, NormalTypeMino, StateR>,
+    ZsR => MinoState<MinoZ, NormalTypeMino, StateR>,
+    JsR => MinoState<MinoJ, NormalTypeMino, StateR>,
+    LsR => MinoState<MinoL, NormalTypeMino, StateR>,
+    TsR => MinoState<MinoT, NormalTypeMino, StateR>,
+    Is2 => MinoState<MinoI, BarTypeMino, State2>,
+    Os2 => MinoState<MinoO, NormalTypeMino, State2>,
+    Ss2 => MinoState<MinoS, NormalTypeMino, State2>,
+    Zs2 => MinoState<MinoZ, NormalTypeMino, State2>,
+    Js2 => MinoState<MinoJ, NormalTypeMino, State2>,
+    Ls2 => MinoState<MinoL, NormalTypeMino, State2>,
+    Ts2 => MinoState<MinoT, NormalTypeMino, State2>,
+    IsL => MinoState<MinoI, BarTypeMino, StateL>,
+    OsL => MinoState<MinoO, NormalTypeMino, StateL>,
+    SsL => MinoState<MinoS, NormalTypeMino, StateL>,
+    ZsL => MinoState<MinoZ, NormalTypeMino, StateL>,
+    JsL => MinoState<MinoJ, NormalTypeMino, StateL>,
+    LsL => MinoState<MinoL, NormalTypeMino, StateL>,
+    TsL => MinoState<MinoT, NormalTypeMino, StateL>,
+);
+
+macro_rules! define_first_minos {
+    ( $( $var:tt =>MinoState<$type:tt, $form:tt, $rot:tt> ),* $(,)? ) => {
+        pub const MINOS_SRC: [Minos; 7] = [
+            $(
+                Minos::$var(MinoState::<$type, $form, $rot> {
+                    _mino: $type,
+                    _form: $form,
+                    _state: $rot,
+                    x: 3,
+                    y: FIELD_H as i8,
+                }),
+            )*
+        ];
+    }
+}
+
+define_first_minos!(
+    Is0 => MinoState<MinoI, BarTypeMino, State0>,
+    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
+    Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
+    Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
+    Js0 => MinoState<MinoJ, NormalTypeMino, State0>,
+    Ls0 => MinoState<MinoL, NormalTypeMino, State0>,
+    Ts0 => MinoState<MinoT, NormalTypeMino, State0>,
+);

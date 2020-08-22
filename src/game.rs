@@ -5,7 +5,6 @@ pub struct Game {
     field: Field,
     minos_position: u8,
     minos_index: [u8; 252],
-    minos_src: [Minos; 7],
     ground: bool,
     ground_time: u8,
     lock_time: u8,
@@ -23,43 +22,17 @@ impl Game {
             field: Field::new(),
             minos_position: 0,
             minos_index,
-            minos_src: [
-                Minos::Is0(MinoState::<MinoI, BarTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Os0(MinoState::<MinoO, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Ss0(MinoState::<MinoS, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Zs0(MinoState::<MinoZ, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Js0(MinoState::<MinoJ, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Ls0(MinoState::<MinoL, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-                Minos::Ts0(MinoState::<MinoT, NormalTypeMino, State0>::new_with(
-                    3,
-                    DISPLAY_FIELD_H as i8,
-                )),
-            ],
             ground: false,
             ground_time: 0,
             lock_time: 2,
         }
     }
 
-    pub fn field(&self) -> &[[bool; FIELD_W]; FIELD_H] {
+    pub fn field_mut(&mut self) -> &mut Field {
+        &mut self.field
+    }
+
+    pub fn rows(&self) -> &[[bool; FIELD_W]; FIELD_H] {
         self.field.rows()
     }
 
@@ -164,7 +137,7 @@ impl Game {
     }
 
     pub fn new_mino(&mut self) -> Option<Minos> {
-        let mino = self.minos_src[self.minos_index[self.minos_position as usize] as usize];
+        let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
         self.minos_position += 1;
         Some(mino)
     }
@@ -232,69 +205,81 @@ pub enum Rotation {
     None,
 }
 
-macro_rules! define_minos {
-    ( $( $name:tt => $state:path ),* $(,)? ) => {
-        #[derive(Debug,  Copy, Clone)]
-        pub enum Minos {
-            $( $name($state), )*
-        }
-        $(
-            impl Into<Minos> for $state {
-                fn into(self) -> Minos {
-                    Minos::$name(self)
-                }
-            }
-        )*
-    }
-}
-
-define_minos!(
-    Is0 => MinoState<MinoI, BarTypeMino, State0>,
-    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
-    Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
-    Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
-    Js0 => MinoState<MinoJ, NormalTypeMino, State0>,
-    Ls0 => MinoState<MinoL, NormalTypeMino, State0>,
-    Ts0 => MinoState<MinoT, NormalTypeMino, State0>,
-    IsR => MinoState<MinoI, BarTypeMino, StateR>,
-    OsR => MinoState<MinoO, NormalTypeMino, StateR>,
-    SsR => MinoState<MinoS, NormalTypeMino, StateR>,
-    ZsR => MinoState<MinoZ, NormalTypeMino, StateR>,
-    JsR => MinoState<MinoJ, NormalTypeMino, StateR>,
-    LsR => MinoState<MinoL, NormalTypeMino, StateR>,
-    TsR => MinoState<MinoT, NormalTypeMino, StateR>,
-    Is2 => MinoState<MinoI, BarTypeMino, State2>,
-    Os2 => MinoState<MinoO, NormalTypeMino, State2>,
-    Ss2 => MinoState<MinoS, NormalTypeMino, State2>,
-    Zs2 => MinoState<MinoZ, NormalTypeMino, State2>,
-    Js2 => MinoState<MinoJ, NormalTypeMino, State2>,
-    Ls2 => MinoState<MinoL, NormalTypeMino, State2>,
-    Ts2 => MinoState<MinoT, NormalTypeMino, State2>,
-    IsL => MinoState<MinoI, BarTypeMino, StateL>,
-    OsL => MinoState<MinoO, NormalTypeMino, StateL>,
-    SsL => MinoState<MinoS, NormalTypeMino, StateL>,
-    ZsL => MinoState<MinoZ, NormalTypeMino, StateL>,
-    JsL => MinoState<MinoJ, NormalTypeMino, StateL>,
-    LsL => MinoState<MinoL, NormalTypeMino, StateL>,
-    TsL => MinoState<MinoT, NormalTypeMino, StateL>,
-);
-
 #[cfg(test)]
-mod tests {
+pub mod test_uti {
     use crate::*;
+    use core::ops::Range;
     use std::prelude::v1::*;
 
     // ⬜: mino
     // ⬛: locked
     // 　: blank
-    fn print_field(game: &Game) {
-        game.field().iter().rev().for_each(|row| {
-            row.iter()
-                .for_each(|cell| if *cell { print!("⬛") } else { print!("⬜") });
-            print!("\n");
+    pub fn print_field(game: &Game, mino: &Minos, r: Range<usize>) -> String {
+        let mut minos = vec![vec!["⬜"; FIELD_W]; FIELD_H];
+        detect_mino(mino, |x, y| minos[y as usize][x as usize] = "　");
+
+        game.rows().iter().enumerate().rev().for_each(|(y, row)| {
+            row.iter().enumerate().for_each(|(x, cell)| {
+                if *cell {
+                    minos[y as usize][x as usize] = "⬛";
+                }
+            });
         });
-        println!("printed");
+        minos
+            .into_iter()
+            .rev()
+            .skip(r.start)
+            .take(r.count())
+            .flat_map(|mut s| {
+                s.push("\n");
+                s
+            })
+            .collect::<Vec<_>>()
+            .join("")
     }
+
+    pub fn detect_mino<F>(mino: &Minos, f: F)
+    where
+        F: FnMut(i8, i8),
+    {
+        match mino {
+            Minos::Is0(m) => m.mut_with_absolute_cells(f),
+            Minos::Os0(m) => m.mut_with_absolute_cells(f),
+            Minos::Ss0(m) => m.mut_with_absolute_cells(f),
+            Minos::Zs0(m) => m.mut_with_absolute_cells(f),
+            Minos::Js0(m) => m.mut_with_absolute_cells(f),
+            Minos::Ls0(m) => m.mut_with_absolute_cells(f),
+            Minos::Ts0(m) => m.mut_with_absolute_cells(f),
+            Minos::IsR(m) => m.mut_with_absolute_cells(f),
+            Minos::OsR(m) => m.mut_with_absolute_cells(f),
+            Minos::SsR(m) => m.mut_with_absolute_cells(f),
+            Minos::ZsR(m) => m.mut_with_absolute_cells(f),
+            Minos::JsR(m) => m.mut_with_absolute_cells(f),
+            Minos::LsR(m) => m.mut_with_absolute_cells(f),
+            Minos::TsR(m) => m.mut_with_absolute_cells(f),
+            Minos::Is2(m) => m.mut_with_absolute_cells(f),
+            Minos::Os2(m) => m.mut_with_absolute_cells(f),
+            Minos::Ss2(m) => m.mut_with_absolute_cells(f),
+            Minos::Zs2(m) => m.mut_with_absolute_cells(f),
+            Minos::Js2(m) => m.mut_with_absolute_cells(f),
+            Minos::Ls2(m) => m.mut_with_absolute_cells(f),
+            Minos::Ts2(m) => m.mut_with_absolute_cells(f),
+            Minos::IsL(m) => m.mut_with_absolute_cells(f),
+            Minos::OsL(m) => m.mut_with_absolute_cells(f),
+            Minos::SsL(m) => m.mut_with_absolute_cells(f),
+            Minos::ZsL(m) => m.mut_with_absolute_cells(f),
+            Minos::JsL(m) => m.mut_with_absolute_cells(f),
+            Minos::LsL(m) => m.mut_with_absolute_cells(f),
+            Minos::TsL(m) => m.mut_with_absolute_cells(f),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::game::test_uti::print_field;
+    use crate::*;
+    use std::prelude::v1::*;
 
     #[test]
     fn step() {
@@ -306,6 +291,6 @@ mod tests {
             mino = game.step(mino, Event::TimeGo);
         }
 
-        println!("{:?}", mino)
+        println!("{}", print_field(&game, &mino, 0..24));
     }
 }

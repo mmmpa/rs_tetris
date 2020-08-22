@@ -216,7 +216,12 @@ pub mod test_uti {
     // 　: blank
     pub fn print_field(game: &Game, mino: &Minos, r: Range<usize>) -> String {
         let mut minos = vec![vec!["⬜"; FIELD_W]; FIELD_H];
-        detect_mino(mino, |x, y| minos[y as usize][x as usize] = "　");
+        detect_mino(mino, |x, y| {
+            if y >= FIELD_H as i8 || x >= FIELD_W as i8 {
+                return;
+            }
+            minos[y as usize][x as usize] = "　"
+        });
 
         game.rows().iter().enumerate().rev().for_each(|(y, row)| {
             row.iter().enumerate().for_each(|(x, cell)| {
@@ -285,11 +290,24 @@ mod tests {
     fn step() {
         let mut game = Game::new();
 
-        let mut mino = game.new_mino().unwrap();
+        let mut mino = MINOS_SRC[0];
 
-        for _ in 0..22 {
-            mino = game.step(mino, Event::TimeGo);
-        }
+        mino = game.step(mino, Event::Movement(Movement::Down));
+        mino = game.step(mino, Event::Movement(Movement::Down));
+        mino = game.step(mino, Event::Movement(Movement::Left));
+        mino = game.step(mino, Event::Movement(Movement::Left));
+        mino = game.step(mino, Event::Movement(Movement::Left));
+        mino = game.step(mino, Event::Movement(Movement::Left));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Rotation(Rotation::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Movement(Movement::Right));
+        mino = game.step(mino, Event::Rotation(Rotation::Right));
 
         println!("{}", print_field(&game, &mino, 0..24));
     }

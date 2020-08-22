@@ -1,4 +1,5 @@
 use crate::*;
+use core::fmt::Debug;
 
 #[derive(Debug, Copy, Clone)]
 pub struct MinoState<MT: MinoType, MF: MinoForm, Rot: RotationState> {
@@ -34,7 +35,7 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
 pub trait MinoFn: MinoCore + Right + Left {}
 
 /// Provide a mino information for rendering.
-pub trait MinoCore: NewWithPos + Into<Minos> {
+pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
     type Mino: MinoType;
     type Form: MinoForm;
     type Now: RotationState;
@@ -47,6 +48,7 @@ pub trait MinoCore: NewWithPos + Into<Minos> {
     fn pos(&self) -> (i8, i8);
 
     /// for moving
+    fn absolute(&mut self, xy: (i8, i8));
     fn offset(&mut self, xy: (i8, i8));
 
     /// for rendering
@@ -54,10 +56,16 @@ pub trait MinoCore: NewWithPos + Into<Minos> {
     where
         F: FnMut(i8, i8);
 
-    /// for hit testing
+    /// For hit testing.
+    /// Returning false means that all cells don't hit.
     fn test_with_absolute_cells<F>(&self, f: F) -> bool
     where
         F: Fn(i8, i8) -> bool;
+
+    fn is_0(&self) -> bool;
+    fn is_r(&self) -> bool;
+    fn is_l(&self) -> bool;
+    fn is_2(&self) -> bool;
 }
 
 macro_rules! define_mino_common {
@@ -66,9 +74,14 @@ macro_rules! define_mino_common {
             (self.x, self.y)
         }
 
+        fn absolute(&mut self, xy: (i8, i8)) {
+            self.x = xy.0;
+            self.y = xy.1;
+        }
+
         fn offset(&mut self, xy: (i8, i8)) {
             self.x += xy.0;
-            self.y -= xy.1;
+            self.y += xy.1;
         }
 
         fn mut_with_absolute_cells<F>(&self, mut f: F)
@@ -77,7 +90,7 @@ macro_rules! define_mino_common {
         {
             Self::Cell::cells()
                 .iter()
-                .for_each(|(x, y)| f(self.x + x, self.y - y));
+                .for_each(|(x, y)| f(self.x + x, self.y + y));
         }
 
         fn test_with_absolute_cells<F>(&self, f: F) -> bool
@@ -85,7 +98,7 @@ macro_rules! define_mino_common {
             F: Fn(i8, i8) -> bool,
         {
             for (x, y) in Self::Cell::cells().iter() {
-                if f(self.x + x, self.y - y) {
+                if f(self.x + x, self.y + y) {
                     return true;
                 }
             }
@@ -116,6 +129,11 @@ macro_rules! define_mino {
             type Left = StateL;
             type Cell = Cell<$mino_type, State0>;
 
+            fn is_0(&self) -> bool { true }
+            fn is_r(&self) -> bool { false }
+            fn is_l(&self) -> bool { false }
+            fn is_2(&self) -> bool { false }
+
             define_mino_common!();
         }
 
@@ -128,7 +146,29 @@ macro_rules! define_mino {
             type Left = State0;
             type Cell = Cell<$mino_type, StateR>;
 
-            define_mino_common!();
+            fn is_0(&self) -> bool { false }
+            fn is_r(&self) -> bool { true }
+            fn is_l(&self) -> bool { false }
+            fn is_2(&self) -> bool { false }
+
+           define_mino_common!();
+        }
+
+        impl MinoCore for MinoState<$mino_type, $mino_form, StateL> {
+            type Mino = $mino_type;
+            type Form = $mino_form;
+            type Now = StateL;
+            type Right = State0;
+            type Side = StateR;
+            type Left = State2;
+            type Cell = Cell<$mino_type, StateL>;
+
+            fn is_0(&self) -> bool { false }
+            fn is_r(&self) -> bool { false }
+            fn is_l(&self) -> bool { true }
+            fn is_2(&self) -> bool { false }
+
+          define_mino_common!();
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, State2> {
@@ -140,17 +180,10 @@ macro_rules! define_mino {
             type Left = StateR;
             type Cell = Cell<$mino_type, State2>;
 
-            define_mino_common!();
-        }
-
-        impl MinoCore for MinoState<$mino_type, $mino_form, StateL> {
-            type Mino = $mino_type;
-            type Form = $mino_form;
-            type Now = StateL;
-            type Right = State0;
-            type Side = StateR;
-            type Left = State2;
-            type Cell = Cell<$mino_type, StateL>;
+            fn is_0(&self) -> bool { false }
+            fn is_r(&self) -> bool { false }
+            fn is_l(&self) -> bool { false }
+            fn is_2(&self) -> bool { true }
 
             define_mino_common!();
         }
@@ -236,7 +269,7 @@ macro_rules! define_first_minos {
                     _form: $form,
                     _state: $rot,
                     x: 3,
-                    y: FIELD_H as i8,
+                    y: 3,
                 }),
             )*
         ];

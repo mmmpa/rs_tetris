@@ -16,6 +16,8 @@ macro_rules! my_print {
 #[macro_use]
 extern crate std;
 
+mod macros;
+
 mod field;
 mod game;
 mod mino;

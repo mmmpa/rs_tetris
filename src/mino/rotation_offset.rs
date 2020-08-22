@@ -28,14 +28,14 @@ macro_rules! define_rotation_offset {
     };
 }
 
-define_rotation_offset!(BarTypeMino, State0 => StateR, (1, -1));
-define_rotation_offset!(BarTypeMino, StateR => State0, (-1, 1));
-define_rotation_offset!(BarTypeMino, StateR => State2, (-2, 1));
-define_rotation_offset!(BarTypeMino, State2 => StateR, (2, -1));
-define_rotation_offset!(BarTypeMino, State2 => StateL, (2, -2));
-define_rotation_offset!(BarTypeMino, StateL => State2, (-2, 2));
-define_rotation_offset!(BarTypeMino, StateL => State0, (-1, 2));
-define_rotation_offset!(BarTypeMino, State0 => StateL, (1, -2));
+define_rotation_offset!(BarTypeMino, State0 => StateR, (2, -1));
+define_rotation_offset!(BarTypeMino, StateR => State0, (-2, 1));
+define_rotation_offset!(BarTypeMino, StateR => State2, (-2, 2));
+define_rotation_offset!(BarTypeMino, State2 => StateR, (2, -2));
+define_rotation_offset!(BarTypeMino, State2 => StateL, (1, -2));
+define_rotation_offset!(BarTypeMino, StateL => State2, (-1, 2));
+define_rotation_offset!(BarTypeMino, StateL => State0, (-1, 1));
+define_rotation_offset!(BarTypeMino, State0 => StateL, (1, -1));
 
 define_rotation_offset!(NormalTypeMino, State0 => StateR, (1, 0));
 define_rotation_offset!(NormalTypeMino, StateR => State0, (-1, 0));

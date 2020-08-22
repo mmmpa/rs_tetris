@@ -2,7 +2,14 @@ use crate::*;
 
 /// Return state after turning right and offsets list for retry in failure.
 pub trait Right: MinoCore {
-    type Next: MinoCore<Form = Self::Form, Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now> + Right + Left;
+    type Next: MinoCore<
+            Form = Self::Form,
+            Now = Self::Right,
+            Right = Self::Side,
+            Side = Self::Left,
+            Left = Self::Now,
+        > + Right
+        + Left;
     type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
@@ -19,7 +26,14 @@ pub trait Right: MinoCore {
 
 /// Return state after turning left and offsets list for retry in failure.
 pub trait Left: MinoCore {
-    type Next: MinoCore<Form = Self::Form, Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side> + Right + Left;
+    type Next: MinoCore<
+            Form = Self::Form,
+            Now = Self::Left,
+            Right = Self::Now,
+            Side = Self::Right,
+            Left = Self::Side,
+        > + Right
+        + Left;
     type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
@@ -111,7 +125,6 @@ mod tests {
 
         canvas
             .into_iter()
-            .rev()
             .flat_map(|mut s| {
                 s.push("\n");
                 s
@@ -124,53 +137,48 @@ mod tests {
     fn offset_mino_a() {
         let table = [
             "\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬛⬛⬛⬛⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬛⬛⬛⬛⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
             ",
             "\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬛⬜⬜\n\
+                ⬜⬜⬜⬛⬜⬜\n\
+                ⬜⬜⬜⬛⬜⬜\n\
+                ⬜⬜⬜⬛⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
             ",
             "\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬛⬛⬛⬛⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬛⬛⬛⬛⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
             ",
             "\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬛⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬛⬜⬜⬜\n\
+                ⬜⬜⬛⬜⬜⬜\n\
+                ⬜⬜⬛⬜⬜⬜\n\
+                ⬜⬜⬛⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
             ",
             "\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬛⬛⬛⬛⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
-                ⬜⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬛⬛⬛⬛⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
+                ⬜⬜⬜⬜⬜⬜\n\
             ",
         ];
 
-        test_rendering!(table, MinoI, BarTypeMino, 2, 3, 7, 7);
+        test_rendering!(table, MinoI, BarTypeMino, 1, 2, 6, 6);
     }
     #[test]
     fn offset_mino_c() {
@@ -212,7 +220,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoS, NormalTypeMino, 1, 3, 5, 5);
+        test_rendering!(table, MinoS, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -255,7 +263,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoZ, NormalTypeMino, 1, 3, 5, 5);
+        test_rendering!(table, MinoZ, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -298,7 +306,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoJ, NormalTypeMino, 1, 3, 5, 5);
+        test_rendering!(table, MinoJ, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -341,7 +349,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoL, NormalTypeMino, 1, 3, 5, 5);
+        test_rendering!(table, MinoL, NormalTypeMino, 1, 1, 5, 5);
     }
 
     #[test]
@@ -384,6 +392,6 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoT, NormalTypeMino, 1, 3, 5, 5);
+        test_rendering!(table, MinoT, NormalTypeMino, 1, 1, 5, 5);
     }
 }

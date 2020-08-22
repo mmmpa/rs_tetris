@@ -23,6 +23,10 @@ impl Field {
     }
 
     pub fn test(&self, x: usize, y: usize) -> bool {
+        if x < 0 || FIELD_W <= x || y < 0 || FIELD_H <= y {
+            return true;
+        }
+
         self.rows[y][x]
     }
 
@@ -56,6 +60,10 @@ impl Field {
 
             now += 1;
         }
+    }
+
+    pub fn rows(&self) -> &[[bool; FIELD_W]; FIELD_H] {
+        &self.rows
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::*;
 
+#[derive(Debug, Copy, Clone)]
 pub struct MinoState<MT: MinoType, MF: MinoForm, Rot: RotationState> {
     _mino: MT,
     _form: MF,
@@ -30,9 +31,11 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
     }
 }
 
+pub trait MinoFn: MinoCore + Right + Left {}
+
 /// Provide a mino information for rendering.
-pub trait MinoCore: NewWithPos {
-    type Mino;
+pub trait MinoCore: NewWithPos + Into<Minos> {
+    type Mino: MinoType;
     type Form: MinoForm;
     type Now: RotationState;
     type Right: RotationState;
@@ -52,7 +55,7 @@ pub trait MinoCore: NewWithPos {
         F: FnMut(i8, i8);
 
     /// for hit testing
-    fn test_with_absolute_cells<F, T>(&self, f: F) -> bool
+    fn test_with_absolute_cells<F>(&self, f: F) -> bool
     where
         F: Fn(i8, i8) -> bool;
 }
@@ -72,10 +75,12 @@ macro_rules! define_mino_common {
         where
             F: FnMut(i8, i8),
         {
-            Self::Cell::cells().iter().for_each(|(x, y)| f(self.x + x, self.y - y));
+            Self::Cell::cells()
+                .iter()
+                .for_each(|(x, y)| f(self.x + x, self.y - y));
         }
 
-        fn test_with_absolute_cells<F, T>(&self, f: F) -> bool
+        fn test_with_absolute_cells<F>(&self, f: F) -> bool
         where
             F: Fn(i8, i8) -> bool,
         {
@@ -159,7 +164,12 @@ macro_rules! define_mino {
         define_mino_rotation!($mino_type, $mino_form, Left, StateL => State2);
         define_mino_rotation!($mino_type, $mino_form, Left, State2 => StateR);
         define_mino_rotation!($mino_type, $mino_form, Left, StateR => State0);
-    };
+
+        impl MinoFn for MinoState<$mino_type, $mino_form, State0> {}
+        impl MinoFn for MinoState<$mino_type, $mino_form, StateR> {}
+        impl MinoFn for MinoState<$mino_type, $mino_form, State2> {}
+        impl MinoFn for MinoState<$mino_type, $mino_form, StateL> {}
+  };
 }
 
 define_mino!(MinoI, BarTypeMino);

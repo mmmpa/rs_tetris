@@ -9,7 +9,6 @@ pub trait CellExe {
     fn cells() -> &'static [(i8, i8)];
 }
 
-#[macro_export]
 macro_rules! define_cells {
     ( $mino:tt, $state:tt, $cells:expr ) => {
         /// Associated types are just for binding types in other trait definition.

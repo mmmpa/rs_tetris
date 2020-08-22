@@ -1,14 +1,27 @@
 #![allow(warnings)]
 #![no_std]
+#![feature(concat_idents)]
+
+#[cfg(test)]
+macro_rules! my_print {
+    ($($arg:tt)*) => (println!($($arg)*));
+}
+
+#[cfg(not(test))]
+macro_rules! my_print {
+    ($($arg:tt)*) => {};
+}
 
 #[cfg(test)]
 #[macro_use]
 extern crate std;
 
 mod field;
+mod game;
 mod mino;
 
 pub use field::*;
+pub use game::*;
 pub use mino::*;
 
 pub const FIELD_W: usize = 10;

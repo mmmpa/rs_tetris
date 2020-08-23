@@ -146,7 +146,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
             },
             Event::TimeGo => self.action(mino, Event::FreeFall),
 
-            // only for test
             #[cfg(test)]
             Event::Test(test_event) => match test_event {
                 TestEvent::AbsoluteMovement(pos) => {
@@ -212,12 +211,13 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     fn reset_previous_state(&mut self) -> Option<Minos> {
-        self.is_landing = false;
         self.spun = false;
+        self.is_landing = false;
         self.landing_time = 0;
         None
     }
 
+    // TODO: detect Tetris or T-spin, etc.
     fn lock(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
         self.reset_previous_state();
         let mut filled_count = 0;
@@ -240,12 +240,18 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     fn land(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
+        // lock when cannot move down at all
+        if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
+            return self.lock(mino);
+        }
+
         loop {
-            match self.try_move(mino, OFFSET_DOWN) {
-                Ok(_) => {}
-                Err(_) => break,
+            if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
+                break;
             }
         }
+
+        self.reset_previous_state();
         self.is_landing = true;
         None
     }

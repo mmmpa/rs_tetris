@@ -35,7 +35,7 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
 pub trait MinoFn: MinoCore + Right + Left {}
 
 /// Provide a mino information for rendering.
-pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
+pub trait MinoCore: NewWithPos + Into<Minos> + Debug + Rotatable {
     type Mino: MinoType;
     type Form: MinoForm;
     type Now: RotationState;
@@ -66,6 +66,24 @@ pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
     fn is_r(&self) -> bool;
     fn is_l(&self) -> bool;
     fn is_2(&self) -> bool;
+}
+
+pub trait Rotatable {
+    fn is_rotatable(&self) -> bool {
+        true
+    }
+}
+
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoI, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoS, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoZ, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoJ, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoL, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoT, MF, Rot> {}
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoO, MF, Rot> {
+    fn is_rotatable(&self) -> bool {
+        false
+    }
 }
 
 macro_rules! define_mino_common {
@@ -206,7 +224,7 @@ macro_rules! define_mino {
 }
 
 define_mino!(MinoI, BarTypeMino);
-define_mino!(MinoO, OTypeMino);
+define_mino!(MinoO, NormalTypeMino);
 define_mino!(MinoS, NormalTypeMino);
 define_mino!(MinoZ, NormalTypeMino);
 define_mino!(MinoJ, NormalTypeMino);
@@ -231,28 +249,28 @@ macro_rules! define_minos {
 
 define_minos!(
     Is0 => MinoState<MinoI, BarTypeMino, State0>,
-    Os0 => MinoState<MinoO, OTypeMino, State0>,
+    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
     Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
     Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
     Js0 => MinoState<MinoJ, NormalTypeMino, State0>,
     Ls0 => MinoState<MinoL, NormalTypeMino, State0>,
     Ts0 => MinoState<MinoT, NormalTypeMino, State0>,
     IsR => MinoState<MinoI, BarTypeMino, StateR>,
-    OsR => MinoState<MinoO, OTypeMino, StateR>,
+    OsR => MinoState<MinoO, NormalTypeMino, StateR>,
     SsR => MinoState<MinoS, NormalTypeMino, StateR>,
     ZsR => MinoState<MinoZ, NormalTypeMino, StateR>,
     JsR => MinoState<MinoJ, NormalTypeMino, StateR>,
     LsR => MinoState<MinoL, NormalTypeMino, StateR>,
     TsR => MinoState<MinoT, NormalTypeMino, StateR>,
     Is2 => MinoState<MinoI, BarTypeMino, State2>,
-    Os2 => MinoState<MinoO, OTypeMino, State2>,
+    Os2 => MinoState<MinoO, NormalTypeMino, State2>,
     Ss2 => MinoState<MinoS, NormalTypeMino, State2>,
     Zs2 => MinoState<MinoZ, NormalTypeMino, State2>,
     Js2 => MinoState<MinoJ, NormalTypeMino, State2>,
     Ls2 => MinoState<MinoL, NormalTypeMino, State2>,
     Ts2 => MinoState<MinoT, NormalTypeMino, State2>,
     IsL => MinoState<MinoI, BarTypeMino, StateL>,
-    OsL => MinoState<MinoO, OTypeMino, StateL>,
+    OsL => MinoState<MinoO, NormalTypeMino, StateL>,
     SsL => MinoState<MinoS, NormalTypeMino, StateL>,
     ZsL => MinoState<MinoZ, NormalTypeMino, StateL>,
     JsL => MinoState<MinoJ, NormalTypeMino, StateL>,
@@ -278,7 +296,7 @@ macro_rules! define_first_minos {
 
 define_first_minos!(
     Is0 => MinoState<MinoI, BarTypeMino, State0>,
-    Os0 => MinoState<MinoO, OTypeMino, State0>,
+    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
     Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
     Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
     Js0 => MinoState<MinoJ, NormalTypeMino, State0>,

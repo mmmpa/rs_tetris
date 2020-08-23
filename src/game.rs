@@ -125,13 +125,20 @@ impl<F: FnMut(GameEvent)> Game<F> {
                     self.land(mino)
                 }
             }
-            Event::RotateR => {
-                let (mut right, offsets) = mino.right();
-                self.try_rotate(right, offsets).ok()
-            }
-            Event::RotateL => {
-                let (mut left, offsets) = mino.left();
-                self.try_rotate(left, offsets).ok()
+            e @ Event::RotateR | e @ Event::RotateL => {
+                // only for O type mino
+                // to detect T-spin MinoO must always fail to rotate
+                if !mino.is_rotatable() {
+                    return None;
+                }
+
+                if e == Event::RotateR {
+                    let (mut right, offsets) = mino.right();
+                    self.try_rotate(right, offsets).ok()
+                } else {
+                    let (mut left, offsets) = mino.left();
+                    self.try_rotate(left, offsets).ok()
+                }
             }
             Event::FreeFall => match self.try_move(mino, OFFSET_DOWN) {
                 Ok(_) => self.reset_previous_state(),
@@ -290,7 +297,7 @@ const OFFSET_DOWN: Offset = Offset {
     minus: (0, -1),
 };
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Event {
     MoveR,
     MoveL,
@@ -311,7 +318,7 @@ pub enum GameEvent {
     Locked,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TestEvent {
     AbsoluteMovement((i8, i8)),
     AbsoluteRotation(AbsoluteRotation),
@@ -324,7 +331,7 @@ impl Into<Event> for TestEvent {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum AbsoluteRotation {
     State0,
     StateR,

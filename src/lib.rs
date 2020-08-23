@@ -16,6 +16,7 @@ macro_rules! my_print {
 #[macro_use]
 extern crate std;
 
+#[macro_export]
 mod macros;
 
 mod field;

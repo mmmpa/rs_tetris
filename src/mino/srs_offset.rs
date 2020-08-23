@@ -38,7 +38,7 @@ define_srs_offset!(BarTypeMino, StateL => State2, [(0, 0), (-2, 0), (1, 0), (-2,
 define_srs_offset!(BarTypeMino, StateL => State0, [(0, 0), (1, 0), (-2, 0), (1, -2), (-2, 1)]);
 define_srs_offset!(BarTypeMino, State0 => StateL, [(0, 0), (-1, 0), (2, 0), (-1, 2), (2, -1)]);
 
-define_srs_offset!(NormalTypeMino, State0 => StateR, [(0, 0), (-1, 0), (-1, -1), (0, -2), (-1, -2)]);
+define_srs_offset!(NormalTypeMino, State0 => StateR, [(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)]);
 define_srs_offset!(NormalTypeMino, StateR => State0, [(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)]);
 define_srs_offset!(NormalTypeMino, StateR => State2, [(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)]);
 define_srs_offset!(NormalTypeMino, State2 => StateR, [(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)]);

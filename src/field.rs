@@ -30,9 +30,11 @@ impl Field {
         self.rows[y][x]
     }
 
-    pub fn set(&mut self, x: usize, y: usize) {
+    // return true if fill a row
+    pub fn set(&mut self, x: usize, y: usize) -> bool {
         self.rows[y][x] = true;
         self.counts[y] += 1;
+        self.counts[y] == FIELD_W
     }
 
     pub fn delete(&mut self, y: usize) -> bool {
@@ -49,8 +51,8 @@ impl Field {
     // MUST float from above after delete multiline
     pub fn float(&mut self, y: usize) {
         let mut now = y;
-        while now < FIELD_H {
-            let up_row = now + 1;
+        while now > 0 {
+            let up_row = now - 1;
             if self.counts[up_row] == 0 {
                 return;
             }
@@ -58,7 +60,7 @@ impl Field {
             self.rows.swap(now, up_row);
             self.counts.swap(now, up_row);
 
-            now += 1;
+            now -= 1;
         }
     }
 
@@ -85,7 +87,6 @@ mod filed_tester {
 
         canvas
             .into_iter()
-            .rev()
             .flat_map(|mut s| {
                 s.push("\n");
                 s
@@ -105,13 +106,13 @@ mod tests {
     fn test_float() {
         let mut f = Field::new();
 
-        f.set(0, 0);
-        f.set(3, 1);
-        f.set(4, 1);
-        f.set(2, 2);
+        f.set(2, 1);
+        f.set(4, 2);
+        f.set(3, 2);
+        f.set(0, 3);
 
         let s = print_field(&f, 4);
-        assert_eq!([1, 2, 1, 0], f.counts[0..4]);
+        assert_eq!([0, 1, 2, 1], f.counts[0..4]);
         assert_eq!(
             "\
                 ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -124,10 +125,10 @@ mod tests {
             s
         );
 
-        f.float(1);
+        f.float(2);
 
         let s = print_field(&f, 4);
-        assert_eq!([1, 1, 2, 0], f.counts[0..4]);
+        assert_eq!([0, 2, 1, 1], f.counts[0..4]);
         assert_eq!(
             "\
                 ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -138,10 +139,10 @@ mod tests {
             s
         );
 
-        f.float(0);
+        f.float(3);
 
         let s = print_field(&f, 4);
-        assert_eq!([1, 2, 1, 0], f.counts[0..4]);
+        assert_eq!([0, 1, 2, 1], f.counts[0..4]);
         assert_eq!(
             "\
                 ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -158,7 +159,7 @@ mod tests {
         let mut f = Field::new();
 
         for x in 0..FIELD_W {
-            f.set(x, 0);
+            f.set(x, 2);
         }
         f.set(3, 1);
 
@@ -184,7 +185,7 @@ mod tests {
             s
         );
 
-        assert_eq!(true, f.delete(0));
+        assert_eq!(true, f.delete(2));
         let s = print_field(&f, 3);
         assert_eq!(0, f.counts[0]);
         assert_eq!(

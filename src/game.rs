@@ -1,17 +1,22 @@
 use crate::*;
 use core::iter::repeat;
 
-pub struct Game {
+pub struct Game<F: FnMut(GameEvent)> {
     field: Field,
     minos_position: u8,
     minos_index: [u8; 252],
-    ground: bool,
-    ground_time: u8,
+    is_landing: bool,
+    landing_time: u8,
     lock_time: u8,
+    callback: F,
 }
 
-impl Game {
-    pub fn new() -> Self {
+pub enum GameEvent {
+    Locked(Minos),
+}
+
+impl<F: FnMut(GameEvent)> Game<F> {
+    pub fn new(callback: F) -> Self {
         let mut minos_index = [0; 252];
 
         (0..7).cycle().take(252).enumerate().for_each(|(i, n)| {
@@ -22,9 +27,10 @@ impl Game {
             field: Field::new(),
             minos_position: 0,
             minos_index,
-            ground: false,
-            ground_time: 0,
+            is_landing: false,
+            landing_time: 0,
             lock_time: 2,
+            callback,
         }
     }
 
@@ -98,20 +104,17 @@ impl Game {
                     None
                 }
                 Movement::Down => {
-                    mino.offset((0, 1));
-                    if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize))
-                    {
-                        my_print!("hit");
-                        mino.offset((0, -1));
-                        self.ground = true;
-                    }
-                    None
-                }
-                Movement::Fall => {
-                    if self.ground {
+                    if self.is_landing {
                         self.lock(mino)
                     } else {
-                        self.fall(mino)
+                        self.action(mino, Event::FreeFall)
+                    }
+                }
+                Movement::Fall => {
+                    if self.is_landing {
+                        self.lock(mino)
+                    } else {
+                        self.land(mino)
                     }
                 }
                 Movement::None => None,
@@ -127,13 +130,18 @@ impl Game {
                 }
                 Rotation::None => None,
             },
-            Event::TimeGo => {
-                if self.ground {
+            Event::FreeFall => {
+                mino.offset((0, 1));
+                if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
+                    my_print!("hit");
+                    mino.offset((0, -1));
                     self.wait_locking(mino)
                 } else {
-                    self.action(mino, Event::Movement(Movement::Down))
+                    self.reset_wait();
+                    None
                 }
             }
+            Event::TimeGo => self.action(mino, Event::FreeFall),
             Event::Nop => None,
 
             // only for test
@@ -188,42 +196,69 @@ impl Game {
     pub fn new_mino(&mut self) -> Option<Minos> {
         let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
         self.minos_position += 1;
+        (self.callback)(GameEvent::Locked(
+            MINOS_SRC[self.minos_index[self.minos_position as usize] as usize],
+        ));
         Some(mino)
     }
 
     fn wait_locking(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
-        self.ground_time += 1;
-        if self.lock_time > self.ground_time {
+        self.landing_time += 1;
+        if self.landing_time > self.lock_time {
             self.lock(mino)
         } else {
             None
         }
     }
 
+    fn reset_wait(&mut self) {
+        self.is_landing = false;
+        self.landing_time = 0;
+    }
+
     fn lock(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
-        self.ground = false;
-        self.ground_time = 0;
-        mino.mut_with_absolute_cells(|x, y| self.field.set(x as usize, y as usize));
+        self.reset_wait();
+        let mut filled_count = 0;
+        let mut filled = [0; 4];
+        mino.mut_with_absolute_cells(|x, y| {
+            if self.field.set(x as usize, y as usize) {
+                filled[filled_count] = y as usize;
+                filled_count += 1;
+            }
+        });
+
+        while filled_count > 0 {
+            filled_count -= 1;
+            let row = filled[filled_count];
+            self.field.delete(row);
+            self.field.float(row);
+        }
+
         self.new_mino()
     }
 
-    fn fall(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
+    fn land(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
         loop {
             mino.offset((0, 1));
             if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-                mino.offset((1, 0));
+                mino.offset((0, -1));
                 break;
             }
         }
-        self.ground = true;
+        self.is_landing = true;
         None
     }
 
-    fn try_rotate(&self, mut rotated: impl MinoCore, offsets: &[(i8, i8)]) -> Result<Minos, ()> {
+    fn try_rotate(
+        &mut self,
+        mut rotated: impl MinoCore,
+        offsets: &[(i8, i8)],
+    ) -> Result<Minos, ()> {
         let (x, y) = rotated.pos();
         for (offset_x, offset_y) in offsets {
             rotated.absolute((x + offset_x, y + offset_y));
             if !rotated.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
+                self.reset_wait();
                 return Ok(rotated.into());
             }
         }
@@ -237,6 +272,7 @@ pub enum Event {
     Rotation(Rotation),
     TimeGo,
     Nop,
+    FreeFall,
 
     #[cfg(test)]
     Test(TestEvent),
@@ -307,7 +343,11 @@ pub mod test_uti {
     // ⬜: mino
     // ⬛: locked
     // 　: blank
-    pub fn print_field(game: &Game, mino: &Minos, r: Range<usize>) -> String {
+    pub fn print_field<F: FnMut(GameEvent)>(
+        game: &Game<F>,
+        mino: &Minos,
+        r: Range<usize>,
+    ) -> String {
         let mut minos = vec![vec!["⬜"; FIELD_W]; FIELD_H];
         mut_with_absolute_cells(mino, |x, y| minos[y as usize][x as usize] = "　");
 
@@ -367,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_step_i() {
-        let mut game = Game::new();
+        let mut game = Game::new(|_| {});
 
         let mut mino = MINOS_SRC[0];
         {
@@ -456,75 +496,75 @@ mod only_test_method_tests {
     use crate::*;
     use std::prelude::v1::*;
 
+    fn assert_0<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
+        let s = print_field(&game, mino, 0..6);
+        assert_eq!(
+            "\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜　　　　⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                ",
+            s,
+            "\n{}",
+            s
+        );
+    }
+    fn assert_r<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
+        let s = print_field(&game, mino, 0..6);
+        assert_eq!(
+            "\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                ",
+            s,
+            "\n{}",
+            s
+        );
+    }
+    fn assert_l<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
+        let s = print_field(&game, mino, 0..6);
+        assert_eq!(
+            "\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                ",
+            s,
+            "\n{}",
+            s
+        );
+    }
+    fn assert_2<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
+        let s = print_field(&game, mino, 0..6);
+        assert_eq!(
+            "\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜　　　　⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
+                ",
+            s,
+            "{}",
+            s
+        );
+    }
+
     #[test]
     fn test_absolute_rotation() {
-        let mut game = Game::new();
+        let mut game = Game::new(|_| {});
         let mut mino = MINOS_SRC[0];
-
-        let assert_0 = |game: &Game, mino: &Minos| {
-            let s = print_field(&game, mino, 0..6);
-            assert_eq!(
-                "\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜　　　　⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                ",
-                s,
-                "\n{}",
-                s
-            );
-        };
-        let assert_r = |game: &Game, mino: &Minos| {
-            let s = print_field(&game, mino, 0..6);
-            assert_eq!(
-                "\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜　⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                ",
-                s,
-                "\n{}",
-                s
-            );
-        };
-        let assert_l = |game: &Game, mino: &Minos| {
-            let s = print_field(&game, mino, 0..6);
-            assert_eq!(
-                "\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜　⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                ",
-                s,
-                "\n{}",
-                s
-            );
-        };
-        let assert_2 = |game: &Game, mino: &Minos| {
-            let s = print_field(&game, mino, 0..6);
-            assert_eq!(
-                "\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜　　　　⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
-                ",
-                s,
-                "{}",
-                s
-            );
-        };
 
         mino = game.step(mino, AbsoluteMovement((3, 2)));
 

@@ -14,7 +14,7 @@ pub struct Game<F: FnMut(GameEvent)> {
     t_spin1: usize,
     t_spin2: usize,
     t_spin3: usize,
-    spinned: bool,
+    spun: bool,
     callback: F,
 }
 
@@ -40,7 +40,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
             callback,
             deleted_line: 0,
             t_spin3: 0,
-            spinned: false,
+            spun: false,
         }
     }
 
@@ -55,6 +55,8 @@ impl<F: FnMut(GameEvent)> Game<F> {
     pub fn rows(&self) -> &[[bool; FIELD_W]; FIELD_H] {
         self.field.rows()
     }
+
+    pub fn right(&mut self) {}
 
     pub fn step(&mut self, event: impl Into<Event>) {
         let event = event.into();
@@ -101,61 +103,40 @@ impl<F: FnMut(GameEvent)> Game<F> {
         // my_print!("{:?}", event);
 
         match event {
-            Event::Movement(movement) => match movement {
-                Movement::Right => {
-                    mino.offset((1, 0));
-                    if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize))
-                    {
-                        mino.offset((-1, 0));
-                    };
-                    None
-                }
-                Movement::Left => {
-                    mino.offset((-1, 0));
-                    if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize))
-                    {
-                        mino.offset((1, 0));
-                    }
-                    None
-                }
-                Movement::Down => {
-                    if self.is_landing {
-                        self.lock(mino)
-                    } else {
-                        self.action(mino, Event::FreeFall)
-                    }
-                }
-                Movement::Fall => {
-                    if self.is_landing {
-                        self.lock(mino)
-                    } else {
-                        self.land(mino)
-                    }
-                }
-                Movement::None => None,
-            },
-            Event::Rotation(rotation) => match rotation {
-                Rotation::Right => {
-                    let (mut right, offsets) = mino.right();
-                    self.try_rotate(right, offsets).ok()
-                }
-                Rotation::Left => {
-                    let (mut left, offsets) = mino.left();
-                    self.try_rotate(left, offsets).ok()
-                }
-                Rotation::None => None,
-            },
-            Event::FreeFall => {
-                mino.offset((0, 1));
-                if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-                    my_print!("hit");
-                    mino.offset((0, -1));
-                    self.wait_locking(mino)
+            Event::DoMovementRight => {
+                self.try_move(mino, OFFSET_RIGHT);
+                None
+            }
+            Event::DoMovementLeft => {
+                self.try_move(mino, OFFSET_LEFT);
+                None
+            }
+            Event::DoMovementDown => {
+                if self.is_landing {
+                    self.lock(mino)
                 } else {
-                    self.reset_wait();
-                    None
+                    self.action(mino, Event::FreeFall)
                 }
             }
+            Event::DoMovementFall => {
+                if self.is_landing {
+                    self.lock(mino)
+                } else {
+                    self.land(mino)
+                }
+            }
+            Event::DoRotationRight => {
+                let (mut right, offsets) = mino.right();
+                self.try_rotate(right, offsets).ok()
+            }
+            Event::DoRotationLeft => {
+                let (mut left, offsets) = mino.left();
+                self.try_rotate(left, offsets).ok()
+            }
+            Event::FreeFall => match self.try_move(mino, OFFSET_DOWN) {
+                Ok(_) => self.reset_previous_state(),
+                Err(_) => self.wait_locking(mino),
+            },
             Event::TimeGo => self.action(mino, Event::FreeFall),
             Event::Nop => None,
 
@@ -216,6 +197,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn wait_locking(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
         self.landing_time += 1;
+
         if self.landing_time > self.lock_time {
             self.lock(mino)
         } else {
@@ -223,13 +205,15 @@ impl<F: FnMut(GameEvent)> Game<F> {
         }
     }
 
-    fn reset_wait(&mut self) {
+    fn reset_previous_state(&mut self) -> Option<Minos> {
         self.is_landing = false;
+        self.spun = false;
         self.landing_time = 0;
+        None
     }
 
     fn lock(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
-        self.reset_wait();
+        self.reset_previous_state();
         let mut filled_count = 0;
         let mut filled = [0; 4];
         mino.mut_with_absolute_cells(|x, y| {
@@ -251,14 +235,22 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn land(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
         loop {
-            mino.offset((0, 1));
-            if mino.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-                mino.offset((0, -1));
-                break;
+            match self.try_move(mino, OFFSET_DOWN) {
+                Ok(_) => {}
+                Err(_) => break,
             }
         }
         self.is_landing = true;
         None
+    }
+
+    fn try_move(&mut self, moving: &mut impl MinoCore, offset: Offset) -> Result<(), ()> {
+        moving.offset(offset.plus);
+        if moving.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
+            moving.offset(offset.minus);
+            return Err(());
+        }
+        Ok(())
     }
 
     fn try_rotate(
@@ -270,7 +262,8 @@ impl<F: FnMut(GameEvent)> Game<F> {
         for (offset_x, offset_y) in offsets {
             rotated.absolute((x + offset_x, y + offset_y));
             if !rotated.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-                self.reset_wait();
+                self.reset_previous_state();
+                self.spun = true;
                 return Ok(rotated.into());
             }
         }
@@ -278,10 +271,35 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 }
 
+struct Offset {
+    plus: (i8, i8),
+    minus: (i8, i8),
+}
+
+const OFFSET_RIGHT: Offset = Offset {
+    plus: (1, 0),
+    minus: (-1, 0),
+};
+
+const OFFSET_LEFT: Offset = Offset {
+    plus: (-1, 0),
+    minus: (1, 0),
+};
+
+const OFFSET_DOWN: Offset = Offset {
+    plus: (0, 1),
+    minus: (0, -1),
+};
+
 #[derive(Debug)]
 pub enum Event {
-    Movement(Movement),
-    Rotation(Rotation),
+    DoMovementRight,
+    DoMovementLeft,
+    DoMovementDown,
+    DoMovementFall,
+    DoRotationRight,
+    DoRotationLeft,
+
     TimeGo,
     Nop,
     FreeFall,
@@ -292,34 +310,6 @@ pub enum Event {
 
 pub enum GameEvent {
     Locked,
-}
-
-#[derive(Debug)]
-pub enum Movement {
-    Right,
-    Left,
-    Down,
-    Fall,
-    None,
-}
-
-impl Into<Event> for Movement {
-    fn into(self) -> Event {
-        Event::Movement(self)
-    }
-}
-
-#[derive(Debug)]
-pub enum Rotation {
-    Right,
-    Left,
-    None,
-}
-
-impl Into<Event> for Rotation {
-    fn into(self) -> Event {
-        Event::Rotation(self)
-    }
 }
 
 #[derive(Debug)]
@@ -425,11 +415,11 @@ mod tests {
 
         {
             game.step(AbsoluteMovement((0, 2)));
-            game.step(Movement::Left);
+            game.step(Event::DoMovementLeft);
             assert_eq!(0, get_mino_pos(game.mino()).0);
 
             game.step(AbsoluteMovement((6, 3)));
-            game.step(Movement::Right);
+            game.step(Event::DoMovementRight);
             assert_eq!(6, get_mino_pos(game.mino()).0);
         }
 
@@ -438,14 +428,14 @@ mod tests {
             game.step(AbsoluteRotation::StateL);
             game.step(AbsoluteMovement((0, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Left);
+            game.step(Event::DoRotationLeft);
             println!("to 2");
             println!("{}", print_field(&game, 0..6));
 
             game.step(AbsoluteRotation::StateL);
             game.step(AbsoluteMovement((0, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Right);
+            game.step(Event::DoRotationRight);
             println!("to 0");
             println!("{}", print_field(&game, 0..6));
         }
@@ -455,14 +445,14 @@ mod tests {
             game.step(AbsoluteRotation::StateR);
             game.step(AbsoluteMovement((0, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Left);
+            game.step(Event::DoRotationLeft);
             println!("to 0");
             println!("{}", print_field(&game, 0..6));
 
             game.step(AbsoluteRotation::StateR);
             game.step(AbsoluteMovement((0, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Right);
+            game.step(Event::DoRotationRight);
             println!("to 2");
             println!("{}", print_field(&game, 0..6));
         }
@@ -472,14 +462,14 @@ mod tests {
             game.step(AbsoluteRotation::StateL);
             game.step(AbsoluteMovement((9, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Left);
+            game.step(Event::DoRotationLeft);
             println!("to 2");
             println!("{}", print_field(&game, 0..6));
 
             game.step(AbsoluteRotation::StateL);
             game.step(AbsoluteMovement((9, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Right);
+            game.step(Event::DoRotationRight);
             println!("to 0");
             println!("{}", print_field(&game, 0..6));
         }
@@ -489,14 +479,14 @@ mod tests {
             game.step(AbsoluteRotation::StateR);
             game.step(AbsoluteMovement((9, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Left);
+            game.step(Event::DoRotationLeft);
             println!("to 0");
             println!("{}", print_field(&game, 0..6));
 
             game.step(AbsoluteRotation::StateR);
             game.step(AbsoluteMovement((9, 1)));
             println!("{}", print_field(&game, 0..6));
-            game.step(Rotation::Right);
+            game.step(Event::DoRotationRight);
             println!("to 2");
             println!("{}", print_field(&game, 0..6));
         }

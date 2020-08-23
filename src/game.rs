@@ -2,17 +2,20 @@ use crate::*;
 use core::iter::repeat;
 
 pub struct Game<F: FnMut(GameEvent)> {
+    mino: Option<Minos>,
     field: Field,
     minos_position: u8,
     minos_index: [u8; 252],
     is_landing: bool,
     landing_time: u8,
     lock_time: u8,
+    deleted_line: usize,
+    tetris: usize,
+    t_spin1: usize,
+    t_spin2: usize,
+    t_spin3: usize,
+    spinned: bool,
     callback: F,
-}
-
-pub enum GameEvent {
-    Locked(Minos),
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
@@ -24,14 +27,25 @@ impl<F: FnMut(GameEvent)> Game<F> {
         });
 
         Game {
+            mino: Some(MINOS_SRC[0]),
             field: Field::new(),
             minos_position: 0,
             minos_index,
             is_landing: false,
             landing_time: 0,
+            tetris: 0,
+            t_spin1: 0,
+            t_spin2: 0,
             lock_time: 2,
             callback,
+            deleted_line: 0,
+            t_spin3: 0,
+            spinned: false,
         }
+    }
+
+    pub fn mino(&self) -> &Minos {
+        &self.mino.as_ref().unwrap()
     }
 
     pub fn field_mut(&mut self) -> &mut Field {
@@ -42,9 +56,10 @@ impl<F: FnMut(GameEvent)> Game<F> {
         self.field.rows()
     }
 
-    pub fn step(&mut self, mut mino: Minos, event: impl Into<Event>) -> Minos {
+    pub fn step(&mut self, event: impl Into<Event>) {
         let event = event.into();
 
+        let mut mino = self.mino.take().unwrap();
         let next = match &mut mino {
             Minos::Is0(m) => self.action(m, event),
             Minos::Os0(m) => self.action(m, event),
@@ -77,9 +92,9 @@ impl<F: FnMut(GameEvent)> Game<F> {
         };
 
         match next {
-            None => mino,
-            Some(mino) => mino,
-        }
+            None => self.mino = Some(mino),
+            Some(new) => self.mino = Some(new),
+        };
     }
 
     pub fn action(&mut self, mut mino: &mut impl MinoFn, event: Event) -> Option<Minos> {
@@ -196,9 +211,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
     pub fn new_mino(&mut self) -> Option<Minos> {
         let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
         self.minos_position += 1;
-        (self.callback)(GameEvent::Locked(
-            MINOS_SRC[self.minos_index[self.minos_position as usize] as usize],
-        ));
         Some(mino)
     }
 
@@ -278,6 +290,10 @@ pub enum Event {
     Test(TestEvent),
 }
 
+pub enum GameEvent {
+    Locked,
+}
+
 #[derive(Debug)]
 pub enum Movement {
     Right,
@@ -343,13 +359,11 @@ pub mod test_uti {
     // ⬜: mino
     // ⬛: locked
     // 　: blank
-    pub fn print_field<F: FnMut(GameEvent)>(
-        game: &Game<F>,
-        mino: &Minos,
-        r: Range<usize>,
-    ) -> String {
+    pub fn print_field<F: FnMut(GameEvent)>(game: &Game<F>, r: Range<usize>) -> String {
         let mut minos = vec![vec!["⬜"; FIELD_W]; FIELD_H];
-        mut_with_absolute_cells(mino, |x, y| minos[y as usize][x as usize] = "　");
+        mut_with_absolute_cells(&game.mino.unwrap(), |x, y| {
+            minos[y as usize][x as usize] = "　"
+        });
 
         game.rows().iter().enumerate().rev().for_each(|(y, row)| {
             row.iter().enumerate().for_each(|(x, cell)| {
@@ -409,83 +423,82 @@ mod tests {
     fn test_step_i() {
         let mut game = Game::new(|_| {});
 
-        let mut mino = MINOS_SRC[0];
         {
-            mino = game.step(mino, AbsoluteMovement((0, 2)));
-            mino = game.step(mino, Movement::Left);
-            assert_eq!(0, get_mino_pos(&mino).0);
+            game.step(AbsoluteMovement((0, 2)));
+            game.step(Movement::Left);
+            assert_eq!(0, get_mino_pos(game.mino()).0);
 
-            mino = game.step(mino, AbsoluteMovement((6, 3)));
-            mino = game.step(mino, Movement::Right);
-            assert_eq!(6, get_mino_pos(&mino).0);
+            game.step(AbsoluteMovement((6, 3)));
+            game.step(Movement::Right);
+            assert_eq!(6, get_mino_pos(game.mino()).0);
         }
 
         println!("from L");
         {
-            mino = game.step(mino, AbsoluteRotation::StateL);
-            mino = game.step(mino, AbsoluteMovement((0, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Left);
+            game.step(AbsoluteRotation::StateL);
+            game.step(AbsoluteMovement((0, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Left);
             println!("to 2");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
 
-            mino = game.step(mino, AbsoluteRotation::StateL);
-            mino = game.step(mino, AbsoluteMovement((0, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Right);
+            game.step(AbsoluteRotation::StateL);
+            game.step(AbsoluteMovement((0, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Right);
             println!("to 0");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
         }
 
         println!("from R");
         {
-            mino = game.step(mino, AbsoluteRotation::StateR);
-            mino = game.step(mino, AbsoluteMovement((0, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Left);
+            game.step(AbsoluteRotation::StateR);
+            game.step(AbsoluteMovement((0, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Left);
             println!("to 0");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
 
-            mino = game.step(mino, AbsoluteRotation::StateR);
-            mino = game.step(mino, AbsoluteMovement((0, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Right);
+            game.step(AbsoluteRotation::StateR);
+            game.step(AbsoluteMovement((0, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Right);
             println!("to 2");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
         }
 
         println!("from L");
         {
-            mino = game.step(mino, AbsoluteRotation::StateL);
-            mino = game.step(mino, AbsoluteMovement((9, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Left);
+            game.step(AbsoluteRotation::StateL);
+            game.step(AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Left);
             println!("to 2");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
 
-            mino = game.step(mino, AbsoluteRotation::StateL);
-            mino = game.step(mino, AbsoluteMovement((9, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Right);
+            game.step(AbsoluteRotation::StateL);
+            game.step(AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Right);
             println!("to 0");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
         }
 
         println!("from R");
         {
-            mino = game.step(mino, AbsoluteRotation::StateR);
-            mino = game.step(mino, AbsoluteMovement((9, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Left);
+            game.step(AbsoluteRotation::StateR);
+            game.step(AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Left);
             println!("to 0");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
 
-            mino = game.step(mino, AbsoluteRotation::StateR);
-            mino = game.step(mino, AbsoluteMovement((9, 1)));
-            println!("{}", print_field(&game, &mino, 0..6));
-            mino = game.step(mino, Rotation::Right);
+            game.step(AbsoluteRotation::StateR);
+            game.step(AbsoluteMovement((9, 1)));
+            println!("{}", print_field(&game, 0..6));
+            game.step(Rotation::Right);
             println!("to 2");
-            println!("{}", print_field(&game, &mino, 0..6));
+            println!("{}", print_field(&game, 0..6));
         }
     }
 }
@@ -496,8 +509,8 @@ mod only_test_method_tests {
     use crate::*;
     use std::prelude::v1::*;
 
-    fn assert_0<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
-        let s = print_field(&game, mino, 0..6);
+    fn assert_0<F: FnMut(GameEvent)>(game: &Game<F>) {
+        let s = print_field(&game, 0..6);
         assert_eq!(
             "\
                     ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -512,8 +525,8 @@ mod only_test_method_tests {
             s
         );
     }
-    fn assert_r<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
-        let s = print_field(&game, mino, 0..6);
+    fn assert_r<F: FnMut(GameEvent)>(game: &Game<F>) {
+        let s = print_field(&game, 0..6);
         assert_eq!(
             "\
                     ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -528,8 +541,8 @@ mod only_test_method_tests {
             s
         );
     }
-    fn assert_l<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
-        let s = print_field(&game, mino, 0..6);
+    fn assert_l<F: FnMut(GameEvent)>(game: &Game<F>) {
+        let s = print_field(&game, 0..6);
         assert_eq!(
             "\
                     ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -544,8 +557,8 @@ mod only_test_method_tests {
             s
         );
     }
-    fn assert_2<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) {
-        let s = print_field(&game, mino, 0..6);
+    fn assert_2<F: FnMut(GameEvent)>(game: &Game<F>) {
+        let s = print_field(&game, 0..6);
         assert_eq!(
             "\
                     ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n\
@@ -566,47 +579,45 @@ mod only_test_method_tests {
         let mut game = Game::new(|_| {});
         let mut mino = MINOS_SRC[0];
 
-        mino = game.step(mino, AbsoluteMovement((3, 2)));
+        game.step(AbsoluteMovement((3, 2)));
 
         // println!("from 0");
 
-        mino = game.step(mino, AbsoluteRotation::State0);
-        assert!(mino_is_0(&mino));
-        assert_0(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateR);
-        assert!(mino_is_r(&mino));
-        assert_r(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State0);
-        assert_0(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateL);
-        assert_l(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State0);
-        assert_0(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State2);
-        assert_2(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State0);
-        assert_0(&game, &mino);
+        game.step(AbsoluteRotation::State0);
+        assert_0(&game);
+        game.step(AbsoluteRotation::StateR);
+        assert_r(&game);
+        game.step(AbsoluteRotation::State0);
+        assert_0(&game);
+        game.step(AbsoluteRotation::StateL);
+        assert_l(&game);
+        game.step(AbsoluteRotation::State0);
+        assert_0(&game);
+        game.step(AbsoluteRotation::State2);
+        assert_2(&game);
+        game.step(AbsoluteRotation::State0);
+        assert_0(&game);
 
         // println!("from R");
 
-        mino = game.step(mino, AbsoluteRotation::StateR);
-        assert_r(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateL);
-        assert_l(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateR);
-        assert_r(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State2);
-        assert_2(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateR);
-        assert_r(&game, &mino);
+        game.step(AbsoluteRotation::StateR);
+        assert_r(&game);
+        game.step(AbsoluteRotation::StateL);
+        assert_l(&game);
+        game.step(AbsoluteRotation::StateR);
+        assert_r(&game);
+        game.step(AbsoluteRotation::State2);
+        assert_2(&game);
+        game.step(AbsoluteRotation::StateR);
+        assert_r(&game);
 
         // println!("from L");
 
-        mino = game.step(mino, AbsoluteRotation::StateL);
-        assert_l(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::State2);
-        assert_2(&game, &mino);
-        mino = game.step(mino, AbsoluteRotation::StateL);
-        assert_l(&game, &mino);
+        game.step(AbsoluteRotation::StateL);
+        assert_l(&game);
+        game.step(AbsoluteRotation::State2);
+        assert_2(&game);
+        game.step(AbsoluteRotation::StateL);
+        assert_l(&game);
     }
 }

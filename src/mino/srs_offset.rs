@@ -46,3 +46,13 @@ define_srs_offset!(NormalTypeMino, State2 => StateL, [(0, 0), (1, 0), (1, 1), (0
 define_srs_offset!(NormalTypeMino, StateL => State2, [(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)]);
 define_srs_offset!(NormalTypeMino, StateL => State0, [(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)]);
 define_srs_offset!(NormalTypeMino, State0 => StateL, [(0, 0), (1, 0), (1, 1), (0, -2), (1, -2)]);
+
+// always fail to rotate
+define_srs_offset!(OTypeMino, State0 => StateR, []);
+define_srs_offset!(OTypeMino, StateR => State0, []);
+define_srs_offset!(OTypeMino, StateR => State2, []);
+define_srs_offset!(OTypeMino, State2 => StateR, []);
+define_srs_offset!(OTypeMino, State2 => StateL, []);
+define_srs_offset!(OTypeMino, StateL => State2, []);
+define_srs_offset!(OTypeMino, StateL => State0, []);
+define_srs_offset!(OTypeMino, State0 => StateL, []);

@@ -206,7 +206,7 @@ macro_rules! define_mino {
 }
 
 define_mino!(MinoI, BarTypeMino);
-define_mino!(MinoO, NormalTypeMino);
+define_mino!(MinoO, OTypeMino);
 define_mino!(MinoS, NormalTypeMino);
 define_mino!(MinoZ, NormalTypeMino);
 define_mino!(MinoJ, NormalTypeMino);
@@ -231,28 +231,28 @@ macro_rules! define_minos {
 
 define_minos!(
     Is0 => MinoState<MinoI, BarTypeMino, State0>,
-    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
+    Os0 => MinoState<MinoO, OTypeMino, State0>,
     Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
     Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
     Js0 => MinoState<MinoJ, NormalTypeMino, State0>,
     Ls0 => MinoState<MinoL, NormalTypeMino, State0>,
     Ts0 => MinoState<MinoT, NormalTypeMino, State0>,
     IsR => MinoState<MinoI, BarTypeMino, StateR>,
-    OsR => MinoState<MinoO, NormalTypeMino, StateR>,
+    OsR => MinoState<MinoO, OTypeMino, StateR>,
     SsR => MinoState<MinoS, NormalTypeMino, StateR>,
     ZsR => MinoState<MinoZ, NormalTypeMino, StateR>,
     JsR => MinoState<MinoJ, NormalTypeMino, StateR>,
     LsR => MinoState<MinoL, NormalTypeMino, StateR>,
     TsR => MinoState<MinoT, NormalTypeMino, StateR>,
     Is2 => MinoState<MinoI, BarTypeMino, State2>,
-    Os2 => MinoState<MinoO, NormalTypeMino, State2>,
+    Os2 => MinoState<MinoO, OTypeMino, State2>,
     Ss2 => MinoState<MinoS, NormalTypeMino, State2>,
     Zs2 => MinoState<MinoZ, NormalTypeMino, State2>,
     Js2 => MinoState<MinoJ, NormalTypeMino, State2>,
     Ls2 => MinoState<MinoL, NormalTypeMino, State2>,
     Ts2 => MinoState<MinoT, NormalTypeMino, State2>,
     IsL => MinoState<MinoI, BarTypeMino, StateL>,
-    OsL => MinoState<MinoO, NormalTypeMino, StateL>,
+    OsL => MinoState<MinoO, OTypeMino, StateL>,
     SsL => MinoState<MinoS, NormalTypeMino, StateL>,
     ZsL => MinoState<MinoZ, NormalTypeMino, StateL>,
     JsL => MinoState<MinoJ, NormalTypeMino, StateL>,
@@ -278,7 +278,7 @@ macro_rules! define_first_minos {
 
 define_first_minos!(
     Is0 => MinoState<MinoI, BarTypeMino, State0>,
-    Os0 => MinoState<MinoO, NormalTypeMino, State0>,
+    Os0 => MinoState<MinoO, OTypeMino, State0>,
     Ss0 => MinoState<MinoS, NormalTypeMino, State0>,
     Zs0 => MinoState<MinoZ, NormalTypeMino, State0>,
     Js0 => MinoState<MinoJ, NormalTypeMino, State0>,

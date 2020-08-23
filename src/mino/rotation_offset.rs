@@ -45,3 +45,12 @@ define_rotation_offset!(NormalTypeMino, State2 => StateL, (0, -1));
 define_rotation_offset!(NormalTypeMino, StateL => State2, (0, 1));
 define_rotation_offset!(NormalTypeMino, StateL => State0, (0, 0));
 define_rotation_offset!(NormalTypeMino, State0 => StateL, (0, 0));
+
+define_rotation_offset!(OTypeMino, State0 => StateR, (0,0));
+define_rotation_offset!(OTypeMino, StateR => State0, (0,0));
+define_rotation_offset!(OTypeMino, StateR => State2, (0,0));
+define_rotation_offset!(OTypeMino, State2 => StateR, (0,0));
+define_rotation_offset!(OTypeMino, State2 => StateL, (0,0));
+define_rotation_offset!(OTypeMino, StateL => State2, (0,0));
+define_rotation_offset!(OTypeMino, StateL => State0, (0,0));
+define_rotation_offset!(OTypeMino, State0 => StateL, (0,0));

@@ -2,45 +2,47 @@ use crate::*;
 use core::iter::repeat;
 
 pub struct Game<F: FnMut(GameEvent)> {
-    mino: Option<Minos>,
+    callback: F,
+    deleted_line: usize,
     field: Field,
-    minos_position: u8,
-    minos_index: [u8; 252],
     is_landing: bool,
     landing_time: u8,
     lock_time: u8,
-    deleted_line: usize,
-    tetris: usize,
+    mino: Option<Minos>,
+    minos_index: [u8; 252],
+    minos_position: u8,
+    spun: bool,
     t_spin1: usize,
     t_spin2: usize,
     t_spin3: usize,
-    spun: bool,
-    callback: F,
+    tetris: usize,
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
     pub fn new(callback: F) -> Self {
         let mut minos_index = [0; 252];
 
+        use rand::rngs::StdRng;
+
         (0..7).cycle().take(252).enumerate().for_each(|(i, n)| {
             minos_index[i] = n;
         });
 
         Game {
-            mino: Some(MINOS_SRC[0]),
-            field: Field::new(),
-            minos_position: 0,
-            minos_index,
-            is_landing: false,
-            landing_time: 0,
-            tetris: 0,
-            t_spin1: 0,
-            t_spin2: 0,
-            lock_time: 2,
             callback,
             deleted_line: 0,
-            t_spin3: 0,
+            field: Field::new(),
+            is_landing: false,
+            landing_time: 0,
+            lock_time: 2,
+            mino: Some(MINOS_SRC[0]),
+            minos_index,
+            minos_position: 0,
             spun: false,
+            t_spin1: 0,
+            t_spin2: 0,
+            t_spin3: 0,
+            tetris: 0,
         }
     }
 

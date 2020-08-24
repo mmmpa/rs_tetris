@@ -64,14 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let locker = locker.clone();
         let pressed = pressed.clone();
         thread::spawn(move || {
-            let mut next_mino = MINOS_SRC[0];
-            let mut game = Game::new(|event| match event {
-                GameEvent::Locked(mino) => {
-                    let mut stdout = stdout();
-                    write!(stdout, "{}{}", Goto(1, 25), print_next(&mino)).unwrap()
-                }
-            });
-            let mut mino = game.new_mino().unwrap();
+            let mut game = Game::new(|event| {});
 
             let mut stdout = stdout();
 
@@ -91,32 +84,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 *pressed.write().unwrap() = Default::default();
 
                 if fall {
-                    mino = game.step(mino, Movement::Fall)
+                    game.step(Event::Land);
                 }
                 if left {
-                    mino = game.step(mino, Movement::Left)
+                    game.step(Event::MoveL);
                 }
                 if right {
-                    mino = game.step(mino, Movement::Right)
+                    game.step(Event::MoveR);
                 }
                 if down {
-                    mino = game.step(mino, Movement::Down)
+                    game.step(Event::MoveDown);
                 }
                 if rotate_l {
-                    mino = game.step(mino, Rotation::Left)
+                    game.step(Event::RotateL);
                 }
                 if rotate_r {
-                    mino = game.step(mino, Rotation::Right)
+                    game.step(Event::RotateR);
                 }
 
                 now += 1;
 
                 if now > interval {
-                    mino = game.step(mino, Event::TimeGo);
+                    game.step(Event::TimeGo);
                     now = 0;
                 }
 
-                write!(stdout, "{}{}", Goto(1, 1), print_field(&game, &mino)).unwrap();
+                write!(stdout, "{}{}", Goto(1, 1), print_field(&game)).unwrap();
                 thread::sleep(ten_millis);
             }
         });
@@ -133,10 +126,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 // ⬜: mino
 // ⬛: locked
 // 　: blank
-fn print_field<F: FnMut(GameEvent)>(game: &Game<F>, mino: &Minos) -> String {
+fn print_field<F: FnMut(GameEvent)>(game: &Game<F>) -> String {
     let mut minos = [["　"; FIELD_W]; FIELD_H + 1];
 
-    mut_with_absolute_cells(mino, |x, y| minos[y as usize][x as usize] = "⬜");
+    mut_with_absolute_cells(game.mino(), |x, y| minos[y as usize][x as usize] = "⬜");
 
     game.rows().iter().enumerate().rev().for_each(|(y, row)| {
         row.iter().enumerate().for_each(|(x, cell)| {

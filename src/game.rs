@@ -430,9 +430,9 @@ mod tests {
             game.step(Event::MoveL);
             assert_eq!(0, get_mino_pos(game.mino()).0);
 
-            game.step(AbsoluteMovement((6, 3)));
+            game.step(AbsoluteMovement((9, 3)));
             game.step(Event::MoveR);
-            assert_eq!(6, get_mino_pos(game.mino()).0);
+            assert_eq!(9, get_mino_pos(game.mino()).0);
         }
 
         println!("from L");
@@ -489,14 +489,14 @@ mod tests {
         println!("from R");
         {
             game.step(AbsoluteRotation::StateR);
-            game.step(AbsoluteMovement((9, 1)));
+            game.step(AbsoluteMovement((8, 1)));
             println!("{}", print_field(&game, 0..6));
             game.step(Event::RotateL);
             println!("to 0");
             println!("{}", print_field(&game, 0..6));
 
             game.step(AbsoluteRotation::StateR);
-            game.step(AbsoluteMovement((9, 1)));
+            game.step(AbsoluteMovement((8, 1)));
             println!("{}", print_field(&game, 0..6));
             game.step(Event::RotateR);
             println!("to 2");
@@ -581,7 +581,7 @@ mod only_test_method_tests {
         let mut game = Game::new(|_| {});
         let mut mino = MINOS_SRC[0];
 
-        game.step(AbsoluteMovement((3, 2)));
+        game.step(AbsoluteMovement((4, 2)));
 
         // println!("from 0");
 

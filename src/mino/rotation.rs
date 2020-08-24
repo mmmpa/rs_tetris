@@ -15,8 +15,6 @@ pub trait Right: MinoCore {
 
     fn right(&self) -> (Self::Next, &[(i8, i8)]) {
         let mut next = Self::Next::new_with_t(self.pos());
-        let offset = Self::Rotation::offset();
-        next.offset(offset);
 
         let srs = Self::Srs::offset();
 
@@ -39,8 +37,6 @@ pub trait Left: MinoCore {
 
     fn left(&self) -> (Self::Next, &[(i8, i8)]) {
         let mut next = Self::Next::new_with_t(self.pos());
-        let offset = Self::Rotation::offset();
-        next.offset(offset);
 
         let srs = Self::Srs::offset();
 
@@ -178,7 +174,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoI, BarTypeMino, 1, 2, 6, 6);
+        test_rendering!(table, MinoI, BarTypeMino, 2, 2, 6, 6);
     }
     #[test]
     fn offset_mino_c() {
@@ -220,7 +216,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoS, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoS, NormalTypeMino, 2, 2, 5, 5);
     }
 
     #[test]
@@ -263,7 +259,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoZ, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoZ, NormalTypeMino, 2, 2, 5, 5);
     }
 
     #[test]
@@ -306,7 +302,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoJ, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoJ, NormalTypeMino, 2, 2, 5, 5);
     }
 
     #[test]
@@ -349,7 +345,7 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoL, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoL, NormalTypeMino, 2, 2, 5, 5);
     }
 
     #[test]
@@ -392,6 +388,6 @@ mod tests {
             ",
         ];
 
-        test_rendering!(table, MinoT, NormalTypeMino, 1, 1, 5, 5);
+        test_rendering!(table, MinoT, NormalTypeMino, 2, 2, 5, 5);
     }
 }

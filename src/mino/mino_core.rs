@@ -130,7 +130,6 @@ macro_rules! define_mino_rotation {
     ( $mino_type:tt, $mino_form:tt, $direction:tt, $from:tt => $to:tt ) => {
         impl $direction for MinoState<$mino_type, $mino_form, $from> {
             type Next = MinoState<$mino_type, $mino_form, $to>;
-            type Rotation = RotationOffset<$mino_form, $from, $to>;
             type Srs = SrsOffset<$mino_form, $from, $to>;
         }
     };

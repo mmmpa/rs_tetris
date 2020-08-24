@@ -10,12 +10,10 @@ pub trait Right: MinoCore {
             Left = Self::Now,
         > + Right
         + Left;
-    type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
     fn right(&self) -> (Self::Next, &[(i8, i8)]) {
-        let mut next = Self::Next::new_with_t(self.pos());
-
+        let next = Self::Next::new_with_t(self.pos());
         let srs = Self::Srs::offset();
 
         (next, srs)
@@ -32,12 +30,10 @@ pub trait Left: MinoCore {
             Left = Self::Side,
         > + Right
         + Left;
-    type Rotation: RotationOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
     fn left(&self) -> (Self::Next, &[(i8, i8)]) {
-        let mut next = Self::Next::new_with_t(self.pos());
-
+        let next = Self::Next::new_with_t(self.pos());
         let srs = Self::Srs::offset();
 
         (next, srs)

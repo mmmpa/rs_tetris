@@ -322,6 +322,8 @@ pub enum Event {
 
 pub enum GameEvent {
     Locked,
+    ChangeNextMinos,
+    Overflow,
 }
 
 #[derive(Debug, Eq, PartialEq)]

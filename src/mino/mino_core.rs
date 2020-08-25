@@ -32,10 +32,10 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
     }
 }
 
-pub trait MinoFn: MinoCore + Right + Left {}
+pub trait MinoFn: MinoCore + Right + Left + Rotatable + Is {}
 
 /// Provide a mino information for rendering.
-pub trait MinoCore: NewWithPos + Into<Minos> + Debug + Rotatable {
+pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
     type Mino: MinoType;
     type Form: MinoForm;
     type Now: RotationState;
@@ -60,11 +60,6 @@ pub trait MinoCore: NewWithPos + Into<Minos> + Debug + Rotatable {
     fn test_with_absolute_cells<F>(&self, f: F) -> bool
     where
         F: Fn(i8, i8) -> bool;
-
-    fn is_0(&self) -> bool;
-    fn is_r(&self) -> bool;
-    fn is_l(&self) -> bool;
-    fn is_2(&self) -> bool;
 }
 
 pub trait Rotatable {
@@ -73,16 +68,52 @@ pub trait Rotatable {
     }
 }
 
+#[rustfmt::skip]
+impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoO, MF, Rot> { fn is_rotatable(&self) -> bool { false } }
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoI, MF, Rot> {}
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoS, MF, Rot> {}
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoZ, MF, Rot> {}
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoJ, MF, Rot> {}
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoL, MF, Rot> {}
 impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoT, MF, Rot> {}
-impl<MF: MinoForm, Rot: RotationState> Rotatable for MinoState<MinoO, MF, Rot> {
-    fn is_rotatable(&self) -> bool {
-        false
-    }
+
+pub trait Is {
+    fn is_0(&self) -> bool;
+    fn is_r(&self) -> bool;
+    fn is_l(&self) -> bool;
+    fn is_2(&self) -> bool;
+}
+
+#[rustfmt::skip]
+impl<MT: MinoType, MF: MinoForm> Is for MinoState<MT, MF, State0> {
+    fn is_0(&self) -> bool { true }
+    fn is_r(&self) -> bool { false }
+    fn is_l(&self) -> bool { false }
+    fn is_2(&self) -> bool { false }
+}
+
+#[rustfmt::skip]
+impl<MT: MinoType, MF: MinoForm> Is for MinoState<MT, MF, StateR> {
+    fn is_0(&self) -> bool { false }
+    fn is_r(&self) -> bool { true }
+    fn is_l(&self) -> bool { false }
+    fn is_2(&self) -> bool { false }
+}
+
+#[rustfmt::skip]
+impl<MT: MinoType, MF: MinoForm> Is for MinoState<MT, MF, StateL> {
+    fn is_0(&self) -> bool { false }
+    fn is_r(&self) -> bool { false }
+    fn is_l(&self) -> bool { true }
+    fn is_2(&self) -> bool { false }
+}
+
+#[rustfmt::skip]
+impl<MT: MinoType, MF: MinoForm> Is for MinoState<MT, MF, State2> {
+    fn is_0(&self) -> bool { false }
+    fn is_r(&self) -> bool { false }
+    fn is_l(&self) -> bool { false }
+    fn is_2(&self) -> bool { true }
 }
 
 macro_rules! define_mino_common {
@@ -144,11 +175,6 @@ macro_rules! define_mino {
             type Side = State2;
             type Left = StateL;
 
-            fn is_0(&self) -> bool { true }
-            fn is_r(&self) -> bool { false }
-            fn is_l(&self) -> bool { false }
-            fn is_2(&self) -> bool { false }
-
             define_mino_common!();
         }
 
@@ -160,12 +186,7 @@ macro_rules! define_mino {
             type Side = StateL;
             type Left = State0;
 
-            fn is_0(&self) -> bool { false }
-            fn is_r(&self) -> bool { true }
-            fn is_l(&self) -> bool { false }
-            fn is_2(&self) -> bool { false }
-
-           define_mino_common!();
+            define_mino_common!();
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, StateL> {
@@ -176,12 +197,7 @@ macro_rules! define_mino {
             type Side = StateR;
             type Left = State2;
 
-            fn is_0(&self) -> bool { false }
-            fn is_r(&self) -> bool { false }
-            fn is_l(&self) -> bool { true }
-            fn is_2(&self) -> bool { false }
-
-          define_mino_common!();
+            define_mino_common!();
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, State2> {
@@ -191,11 +207,6 @@ macro_rules! define_mino {
             type Right = StateL;
             type Side = State0;
             type Left = StateR;
-
-            fn is_0(&self) -> bool { false }
-            fn is_r(&self) -> bool { false }
-            fn is_l(&self) -> bool { false }
-            fn is_2(&self) -> bool { true }
 
             define_mino_common!();
         }

@@ -42,7 +42,6 @@ pub trait MinoCore: NewWithPos + Into<Minos> + Debug + Rotatable {
     type Right: RotationState;
     type Side: RotationState;
     type Left: RotationState;
-    type Cell: CellExe<Mino = Self::Mino, State = Self::Now>;
 
     /// for cloning
     fn pos(&self) -> (i8, i8);
@@ -106,7 +105,7 @@ macro_rules! define_mino_common {
         where
             F: FnMut(i8, i8),
         {
-            Self::Cell::cells()
+            Self::cells()
                 .iter()
                 .for_each(|(x, y)| f(self.x + x, self.y + y));
         }
@@ -115,7 +114,7 @@ macro_rules! define_mino_common {
         where
             F: Fn(i8, i8) -> bool,
         {
-            for (x, y) in Self::Cell::cells().iter() {
+            for (x, y) in Self::cells().iter() {
                 if f(self.x + x, self.y + y) {
                     return true;
                 }
@@ -144,7 +143,6 @@ macro_rules! define_mino {
             type Right = StateR;
             type Side = State2;
             type Left = StateL;
-            type Cell = Cell<$mino_type, State0>;
 
             fn is_0(&self) -> bool { true }
             fn is_r(&self) -> bool { false }
@@ -161,7 +159,6 @@ macro_rules! define_mino {
             type Right = State2;
             type Side = StateL;
             type Left = State0;
-            type Cell = Cell<$mino_type, StateR>;
 
             fn is_0(&self) -> bool { false }
             fn is_r(&self) -> bool { true }
@@ -178,7 +175,6 @@ macro_rules! define_mino {
             type Right = State0;
             type Side = StateR;
             type Left = State2;
-            type Cell = Cell<$mino_type, StateL>;
 
             fn is_0(&self) -> bool { false }
             fn is_r(&self) -> bool { false }
@@ -195,7 +191,6 @@ macro_rules! define_mino {
             type Right = StateL;
             type Side = State0;
             type Left = StateR;
-            type Cell = Cell<$mino_type, State2>;
 
             fn is_0(&self) -> bool { false }
             fn is_r(&self) -> bool { false }

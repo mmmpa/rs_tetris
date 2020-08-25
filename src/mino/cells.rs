@@ -1,21 +1,13 @@
 use crate::*;
 
-pub struct Cell<A, Rot: RotationState>(A, Rot);
-
 pub trait CellExe {
-    type Mino;
-    type State;
-
     fn cells() -> &'static [(i8, i8)];
 }
 
 macro_rules! define_cells {
     ( $mino:tt, $state:tt, $cells:expr ) => {
         /// Associated types are just for binding types in other trait definition.
-        impl CellExe for Cell<$mino, $state> {
-            type Mino = $mino;
-            type State = $state;
-
+        impl<T: MinoForm> CellExe for MinoState<$mino, T, $state> {
             fn cells() -> &'static [(i8, i8)] {
                 &$cells
             }

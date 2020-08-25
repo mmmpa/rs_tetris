@@ -269,7 +269,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn try_rotate(
         &mut self,
-        mut rotated: impl AbsoluteCell,
+        mut rotated: impl AbsoluteCell + Into<Minos>,
         offsets: &[(i8, i8)],
     ) -> Result<Minos, ()> {
         let (x, y) = rotated.pos();

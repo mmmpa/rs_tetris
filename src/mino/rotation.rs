@@ -1,8 +1,9 @@
 use crate::*;
 
-pub trait Left: MinoCore {
+pub trait Left: MinoCore + Pos {
     type Next: MinoCore<Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side>
         + AbsoluteCell
+        + Into<Minos>
         + Right
         + Left;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
@@ -15,9 +16,10 @@ pub trait Left: MinoCore {
     }
 }
 
-pub trait Right: MinoCore {
+pub trait Right: MinoCore + Pos {
     type Next: MinoCore<Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now>
         + AbsoluteCell
+        + Into<Minos>
         + Right
         + Left;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;

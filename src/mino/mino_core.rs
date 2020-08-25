@@ -32,7 +32,7 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
     }
 }
 
-pub trait MinoFn: MinoCore + Right + Left + Cell + Rotatable + Is {}
+pub trait MinoFn: MinoCore + Right + Left + Cell + AbsoluteCell + Rotatable + Is {}
 
 /// Provide a mino information for rendering.
 pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
@@ -48,17 +48,6 @@ pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
     /// for moving and rotation
     fn absolute(&mut self, xy: (i8, i8));
     fn offset(&mut self, xy: (i8, i8));
-
-    /// for rendering
-    fn mut_with_absolute_cells<F>(&self, f: F)
-    where
-        F: FnMut(i8, i8);
-
-    /// For hit testing.
-    /// Returning false means that all cells don't hit.
-    fn test_with_absolute_cells<F>(&self, f: F) -> bool
-    where
-        F: Fn(i8, i8) -> bool;
 }
 
 pub trait Rotatable {
@@ -115,6 +104,35 @@ impl<MT: MinoType, MF: MinoForm> Is for MinoState<MT, MF, State2> {
     fn is_2(&self) -> bool { true }
 }
 
+pub trait AbsoluteCell: MinoCore + Cell {
+    /// for rendering
+    fn mut_with_absolute_cells<F>(&self, mut f: F)
+    where
+        F: FnMut(i8, i8),
+    {
+        let (base_x, base_y) = self.pos();
+        Self::cells()
+            .iter()
+            .for_each(|(x, y)| f(base_x + x, base_y + y));
+    }
+
+    /// For hit testing.
+    /// Returning false means that all cells don't hit.
+    fn test_with_absolute_cells<F>(&self, f: F) -> bool
+    where
+        F: Fn(i8, i8) -> bool,
+    {
+        let (base_x, base_y) = self.pos();
+        for (x, y) in Self::cells().iter() {
+            if f(base_x + x, base_y + y) {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
 macro_rules! define_mino_common {
     () => {
         fn pos(&self) -> (i8, i8) {
@@ -129,28 +147,6 @@ macro_rules! define_mino_common {
         fn offset(&mut self, xy: (i8, i8)) {
             self.x += xy.0;
             self.y += xy.1;
-        }
-
-        fn mut_with_absolute_cells<F>(&self, mut f: F)
-        where
-            F: FnMut(i8, i8),
-        {
-            Self::cells()
-                .iter()
-                .for_each(|(x, y)| f(self.x + x, self.y + y));
-        }
-
-        fn test_with_absolute_cells<F>(&self, f: F) -> bool
-        where
-            F: Fn(i8, i8) -> bool,
-        {
-            for (x, y) in Self::cells().iter() {
-                if f(self.x + x, self.y + y) {
-                    return true;
-                }
-            }
-
-            false
         }
     };
 }
@@ -205,6 +201,11 @@ macro_rules! define_mino {
         define_rotation!(Left, $mino_type, $mino_form, StateL => State2);
         define_rotation!(Left, $mino_type, $mino_form, State2 => StateR);
         define_rotation!(Left, $mino_type, $mino_form, StateR => State0);
+
+        impl AbsoluteCell for MinoState<$mino_type, $mino_form, State0> {}
+        impl AbsoluteCell for MinoState<$mino_type, $mino_form, StateR> {}
+        impl AbsoluteCell for MinoState<$mino_type, $mino_form, State2> {}
+        impl AbsoluteCell for MinoState<$mino_type, $mino_form, StateL> {}
 
         impl MinoFn for MinoState<$mino_type, $mino_form, State0> {}
         impl MinoFn for MinoState<$mino_type, $mino_form, StateR> {}

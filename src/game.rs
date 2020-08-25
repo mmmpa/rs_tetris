@@ -202,7 +202,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         Some(mino)
     }
 
-    fn wait_locking(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
+    fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
         self.landing_time += 1;
 
         if self.landing_time > self.lock_time {
@@ -220,7 +220,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     // TODO: detect Tetris or T-spin, etc.
-    fn lock(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
+    fn lock(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
         self.reset_previous_state();
         let mut filled_count = 0;
         let mut filled = [0; 4];
@@ -241,7 +241,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         self.new_mino()
     }
 
-    fn land(&mut self, mino: &mut impl MinoCore) -> Option<Minos> {
+    fn land(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
         // lock when cannot move down at all
         if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
             return self.lock(mino);
@@ -258,7 +258,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         None
     }
 
-    fn try_move(&mut self, moving: &mut impl MinoCore, offset: Offset) -> Result<(), ()> {
+    fn try_move(&mut self, moving: &mut impl MinoFn, offset: Offset) -> Result<(), ()> {
         moving.offset(offset.plus);
         if moving.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
             moving.offset(offset.minus);
@@ -269,7 +269,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn try_rotate(
         &mut self,
-        mut rotated: impl MinoCore,
+        mut rotated: impl AbsoluteCell,
         offsets: &[(i8, i8)],
     ) -> Result<Minos, ()> {
         let (x, y) = rotated.pos();

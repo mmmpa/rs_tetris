@@ -2,6 +2,7 @@ use crate::*;
 
 pub trait Left: MinoCore {
     type Next: MinoCore<Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side>
+        + AbsoluteCell
         + Right
         + Left;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
@@ -16,6 +17,7 @@ pub trait Left: MinoCore {
 
 pub trait Right: MinoCore {
     type Next: MinoCore<Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now>
+        + AbsoluteCell
         + Right
         + Left;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
@@ -106,7 +108,7 @@ mod tests {
         };
     }
 
-    fn print_test(state: &impl MinoCore, w: usize, h: usize) -> String {
+    fn print_test(state: &impl AbsoluteCell, w: usize, h: usize) -> String {
         let mut canvas = vec![vec!["⬜"; w]; h];
 
         state.mut_with_absolute_cells(|x, y| {

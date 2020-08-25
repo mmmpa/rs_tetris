@@ -6,7 +6,7 @@ pub trait Cell {
 
 macro_rules! define_cells {
     ( $mino:tt, $state:tt, $cells:expr ) => {
-        impl<T: MinoForm> Cell for MinoState<$mino, T, $state> {
+        impl Cell for MinoState<$mino, $state> {
             fn cells() -> &'static [(i8, i8)] {
                 &$cells
             }

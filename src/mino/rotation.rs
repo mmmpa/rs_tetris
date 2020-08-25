@@ -27,8 +27,8 @@ pub trait Right: MinoCore + Pos {
 #[macro_export]
 macro_rules! define_rotation {
     ( $direction:tt, $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
-        impl $direction for MinoState<$mino_type, $mino_form, $from> {
-            type Next = MinoState<$mino_type, $mino_form, $to>;
+        impl $direction for MinoState<$mino_type, $from> {
+            type Next = MinoState<$mino_type, $to>;
             type Srs = SrsOffset<$mino_form, $from, $to>;
         }
     };
@@ -44,7 +44,7 @@ mod tests {
         ( $table:tt, $mino:tt, $form:tt, $x:tt, $y:tt, $canvas_w:tt, $canvas_h:tt ) => {
             let mut it = $table.iter();
 
-            let mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, State0>::new_with($x, $y);
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);
@@ -74,7 +74,7 @@ mod tests {
 
             let mut it = $table.iter().rev();
 
-            let mino = MinoState::<$mino, $form, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, State0>::new_with($x, $y);
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);

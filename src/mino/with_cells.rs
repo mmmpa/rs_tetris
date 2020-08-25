@@ -1,6 +1,6 @@
 use crate::*;
 
-pub trait withCell: Position + Cell {
+pub trait WithCell: Position + Cell {
     /// for rendering
     fn mut_with_absolute_cells<F>(&self, mut f: F)
     where
@@ -29,4 +29,4 @@ pub trait withCell: Position + Cell {
     }
 }
 
-impl<T: Position + Cell> withCell for T {}
+impl<T: Position + Cell> WithCell for T {}

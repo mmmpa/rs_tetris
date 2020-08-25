@@ -1,6 +1,8 @@
 use crate::*;
 use core::fmt::Debug;
 
+pub use mino_fn::MinoFn;
+
 #[derive(Debug, Copy, Clone)]
 pub struct MinoState<MT: MinoType, Rot: RotationState> {
     _mino: MT,
@@ -20,14 +22,33 @@ impl<MT: MinoType, Rot: RotationState> MinoState<MT, Rot> {
     }
 }
 
-pub trait MinoFn:
-    NewWith + Right + Left + withCell + Rotatable + IsState + Into<MinoAggregation>
-{
+/// without IsState
+#[cfg(not(test))]
+pub mod mino_fn {
+    use crate::*;
+
+    pub trait MinoFn:
+        NewWith + Right + Left + WithCell + Rotatable + Into<MinoAggregation>
+    {
+    }
+
+    impl<T: NewWith + Right + Left + WithCell + Rotatable + Into<MinoAggregation>> MinoFn for T {}
 }
 
-impl<T: NewWith + Right + Left + withCell + Rotatable + IsState + Into<MinoAggregation>> MinoFn
-    for T
-{
+/// with IsState
+#[cfg(test)]
+pub mod mino_fn {
+    use crate::*;
+
+    pub trait MinoFn:
+        NewWith + Right + Left + WithCell + Rotatable + IsState + Into<MinoAggregation>
+    {
+    }
+
+    impl<T: NewWith + Right + Left + WithCell + Rotatable + IsState + Into<MinoAggregation>> MinoFn
+        for T
+    {
+    }
 }
 
 /// Provide a mino information for rendering.

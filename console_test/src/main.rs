@@ -145,7 +145,7 @@ fn print_field<F: FnMut(GameEvent)>(game: &Game<F>) -> String {
     })
 }
 
-fn print_next(mino: &Minos) -> String {
+fn print_next(mino: &MinoAggregation) -> String {
     let mut minos = [["　"; 7]; 7];
     mut_with_absolute_cells(mino, |x, y| minos[y as usize][x as usize] = "⬜");
 
@@ -154,7 +154,7 @@ fn print_next(mino: &Minos) -> String {
     })
 }
 
-pub fn mut_with_absolute_cells<F>(mino: &Minos, f: F)
+pub fn mut_with_absolute_cells<F>(mino: &MinoAggregation, f: F)
 where
     F: FnMut(i8, i8),
 {

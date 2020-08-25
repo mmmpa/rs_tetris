@@ -269,7 +269,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn try_rotate(
         &mut self,
-        mut rotated: impl withCell + Into<MinoAggregation>,
+        mut rotated: impl WithCell + Into<MinoAggregation>,
         offsets: &[(i8, i8)],
     ) -> Result<MinoAggregation, ()> {
         let (x, y) = rotated.pos();

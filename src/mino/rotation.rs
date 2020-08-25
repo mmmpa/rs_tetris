@@ -102,7 +102,7 @@ mod tests {
         };
     }
 
-    fn print_test(state: &impl withCell, w: usize, h: usize) -> String {
+    fn print_test(state: &impl WithCell, w: usize, h: usize) -> String {
         let mut canvas = vec![vec!["⬜"; w]; h];
 
         state.mut_with_absolute_cells(|x, y| {

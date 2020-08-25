@@ -4,44 +4,36 @@ pub trait Left: MinoCore {
     type Next: MinoCore<Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side>
         + Right
         + Left;
-    fn left(&self) -> (Self::Next, &[(i8, i8)]);
+    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
+
+    fn left(&self) -> (Self::Next, &[(i8, i8)]) {
+        let next = Self::Next::new_with_t(self.pos());
+        let srs = Self::Srs::offset();
+
+        (next, srs)
+    }
 }
 
 pub trait Right: MinoCore {
     type Next: MinoCore<Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now>
         + Right
         + Left;
-    fn right(&self) -> (Self::Next, &[(i8, i8)]);
+    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
+
+    fn right(&self) -> (Self::Next, &[(i8, i8)]) {
+        let next = Self::Next::new_with_t(self.pos());
+        let srs = Self::Srs::offset();
+
+        (next, srs)
+    }
 }
 
 #[macro_export]
-macro_rules! define_mino_right {
-    ( $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
-        impl Right for MinoState<$mino_type, $mino_form, $from> {
+macro_rules! define_rotation {
+    ( $direction:tt, $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
+        impl $direction for MinoState<$mino_type, $mino_form, $from> {
             type Next = MinoState<$mino_type, $mino_form, $to>;
-
-            fn right(&self) -> (Self::Next, &[(i8, i8)]) {
-                let next = MinoState::<$mino_type, $mino_form, $to>::new_with(self.x, self.y);
-                let srs = SrsOffset::<$mino_form, $from, $to>::offset();
-
-                (next, srs)
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! define_mino_left {
-    ( $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
-        impl Left for MinoState<$mino_type, $mino_form, $from> {
-            type Next = MinoState<$mino_type, $mino_form, $to>;
-
-            fn left(&self) -> (Self::Next, &[(i8, i8)]) {
-                let next = MinoState::<$mino_type, $mino_form, $to>::new_with(self.x, self.y);
-                let srs = SrsOffset::<$mino_form, $from, $to>::offset();
-
-                (next, srs)
-            }
+            type Srs = SrsOffset<$mino_form, $from, $to>;
         }
     };
 }

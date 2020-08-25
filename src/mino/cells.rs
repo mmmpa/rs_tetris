@@ -1,13 +1,12 @@
 use crate::*;
 
-pub trait CellExe {
+pub trait Cell {
     fn cells() -> &'static [(i8, i8)];
 }
 
 macro_rules! define_cells {
     ( $mino:tt, $state:tt, $cells:expr ) => {
-        /// Associated types are just for binding types in other trait definition.
-        impl<T: MinoForm> CellExe for MinoState<$mino, T, $state> {
+        impl<T: MinoForm> Cell for MinoState<$mino, T, $state> {
             fn cells() -> &'static [(i8, i8)] {
                 &$cells
             }

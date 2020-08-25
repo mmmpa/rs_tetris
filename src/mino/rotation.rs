@@ -40,6 +40,64 @@ pub trait Left: MinoCore {
     }
 }
 
+pub trait Lefter {
+    type Next;
+    fn lefter(&self) -> (Self::Next, &[(i8, i8)]);
+}
+
+pub trait Righter {
+    type Next;
+    fn righter(&self) -> (Self::Next, &[(i8, i8)]);
+}
+
+macro_rules! define_mino_right {
+    ( $mino_form:tt, $from:tt => $to:tt ) => {
+        impl<MT: MinoType> Righter for MinoState<MT, $mino_form, $from> {
+            type Next = MinoState<MT, $mino_form, $to>;
+
+            fn righter(&self) -> (Self::Next, &[(i8, i8)]) {
+                let next = MinoState::<MT, $mino_form, $to>::new_with(self.x, self.y);
+                let srs = SrsOffset::<$mino_form, $from, $to>::offset();
+
+                (next, srs)
+            }
+        }
+    };
+}
+
+macro_rules! define_mino_left {
+    ( $mino_form:tt, $from:tt => $to:tt ) => {
+        impl<MT: MinoType> Lefter for MinoState<MT, $mino_form, $from> {
+            type Next = MinoState<MT, $mino_form, $to>;
+
+            fn lefter(&self) -> (Self::Next, &[(i8, i8)]) {
+                let next = MinoState::<MT, $mino_form, $to>::new_with(self.x, self.y);
+                let srs = SrsOffset::<$mino_form, $from, $to>::offset();
+
+                (next, srs)
+            }
+        }
+    };
+}
+
+define_mino_right!(BarTypeMino, State0 => StateR);
+define_mino_right!(BarTypeMino, StateR => State2);
+define_mino_right!(BarTypeMino, State2 => StateL);
+define_mino_right!(BarTypeMino, StateL => State0);
+define_mino_left!(BarTypeMino, State0 => StateL);
+define_mino_left!(BarTypeMino, StateL => State2);
+define_mino_left!(BarTypeMino, State2 => StateR);
+define_mino_left!(BarTypeMino, StateR => State0);
+
+define_mino_right!(NormalTypeMino, State0 => StateR);
+define_mino_right!(NormalTypeMino, StateR => State2);
+define_mino_right!(NormalTypeMino, State2 => StateL);
+define_mino_right!(NormalTypeMino, StateL => State0);
+define_mino_left!(NormalTypeMino, State0 => StateL);
+define_mino_left!(NormalTypeMino, StateL => State2);
+define_mino_left!(NormalTypeMino, State2 => StateR);
+define_mino_left!(NormalTypeMino, StateR => State0);
+
 #[cfg(test)]
 mod tests {
     use crate::mino::rotation::*;

@@ -6,8 +6,8 @@ pub struct MinoState<MT: MinoType, MF: MinoForm, Rot: RotationState> {
     _mino: MT,
     _form: MF,
     _state: Rot,
-    x: i8,
-    y: i8,
+    pub x: i8,
+    pub y: i8,
 }
 
 pub trait NewWithPos {

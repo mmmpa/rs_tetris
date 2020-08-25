@@ -1,23 +1,23 @@
 use crate::*;
 
-pub trait Left: MinoCore + Pos {
+pub trait Left: MinoCore + Position {
     type Next: MinoFn<Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
 
     fn left(&self) -> (Self::Next, &[(i8, i8)]) {
-        let next = Self::Next::new_with_t(self.pos());
+        let next = Self::Next::new_with(self.pos());
         let srs = Self::Srs::offset();
 
         (next, srs)
     }
 }
 
-pub trait Right: MinoCore + Pos {
+pub trait Right: MinoCore + Position {
     type Next: MinoFn<Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now>;
     type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
 
     fn right(&self) -> (Self::Next, &[(i8, i8)]) {
-        let next = Self::Next::new_with_t(self.pos());
+        let next = Self::Next::new_with(self.pos());
         let srs = Self::Srs::offset();
 
         (next, srs)
@@ -44,7 +44,7 @@ mod tests {
         ( $table:tt, $mino:tt, $form:tt, $x:tt, $y:tt, $canvas_w:tt, $canvas_h:tt ) => {
             let mut it = $table.iter();
 
-            let mino = MinoState::<$mino, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, State0>::new_with(($x, $y));
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);
@@ -74,7 +74,7 @@ mod tests {
 
             let mut it = $table.iter().rev();
 
-            let mino = MinoState::<$mino, State0>::new_with($x, $y);
+            let mino = MinoState::<$mino, State0>::new_with(($x, $y));
 
             let now = it.next().unwrap();
             let s = print_test(&mino, $canvas_w, $canvas_h);
@@ -102,7 +102,7 @@ mod tests {
         };
     }
 
-    fn print_test(state: &impl AbsoluteCell, w: usize, h: usize) -> String {
+    fn print_test(state: &impl withCell, w: usize, h: usize) -> String {
         let mut canvas = vec![vec!["⬜"; w]; h];
 
         state.mut_with_absolute_cells(|x, y| {

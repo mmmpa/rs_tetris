@@ -5,17 +5,12 @@ use core::fmt::Debug;
 pub struct MinoState<MT: MinoType, Rot: RotationState> {
     _mino: MT,
     _state: Rot,
-    x: i8,
-    y: i8,
+    pub x: i8,
+    pub y: i8,
 }
 
-pub trait NewWithPos {
-    fn new_with(x: i8, y: i8) -> Self;
-    fn new_with_t(xy: (i8, i8)) -> Self;
-}
-
-impl<MT: MinoType, Rot: RotationState> NewWithPos for MinoState<MT, Rot> {
-    fn new_with(x: i8, y: i8) -> Self {
+impl<MT: MinoType, Rot: RotationState> MinoState<MT, Rot> {
+    pub fn new(x: i8, y: i8) -> Self {
         Self {
             _mino: MT::new(),
             _state: Rot::new(),
@@ -23,15 +18,15 @@ impl<MT: MinoType, Rot: RotationState> NewWithPos for MinoState<MT, Rot> {
             y,
         }
     }
-
-    /// for cloning after rotation
-    fn new_with_t((x, y): (i8, i8)) -> Self {
-        Self::new_with(x, y)
-    }
 }
 
 pub trait MinoFn:
-    NewWithPos + Right + Left + Cell + AbsoluteCell + Rotatable + Is + Into<Minos>
+    NewWith + Right + Left + withCell + Rotatable + IsState + Into<MinoAggregation>
+{
+}
+
+impl<T: NewWith + Right + Left + withCell + Rotatable + IsState + Into<MinoAggregation>> MinoFn
+    for T
 {
 }
 
@@ -42,85 +37,6 @@ pub trait MinoCore {
     type Right: RotationState;
     type Side: RotationState;
     type Left: RotationState;
-}
-
-pub trait Pos {
-    /// for cloning
-    fn pos(&self) -> (i8, i8);
-
-    /// for moving and rotation
-    fn absolute(&mut self, xy: (i8, i8));
-    fn offset(&mut self, xy: (i8, i8));
-}
-
-impl<MT: MinoType, Rot: RotationState> Pos for MinoState<MT, Rot> {
-    fn pos(&self) -> (i8, i8) {
-        (self.x, self.y)
-    }
-
-    fn absolute(&mut self, xy: (i8, i8)) {
-        self.x = xy.0;
-        self.y = xy.1;
-    }
-
-    fn offset(&mut self, xy: (i8, i8)) {
-        self.x += xy.0;
-        self.y += xy.1;
-    }
-}
-
-pub trait Rotatable {
-    fn is_rotatable(&self) -> bool {
-        true
-    }
-}
-
-#[rustfmt::skip]
-impl<Rot: RotationState> Rotatable for MinoState<MinoO, Rot> { fn is_rotatable(&self) -> bool { false } }
-impl<Rot: RotationState> Rotatable for MinoState<MinoI, Rot> {}
-impl<Rot: RotationState> Rotatable for MinoState<MinoS, Rot> {}
-impl<Rot: RotationState> Rotatable for MinoState<MinoZ, Rot> {}
-impl<Rot: RotationState> Rotatable for MinoState<MinoJ, Rot> {}
-impl<Rot: RotationState> Rotatable for MinoState<MinoL, Rot> {}
-impl<Rot: RotationState> Rotatable for MinoState<MinoT, Rot> {}
-
-pub trait Is {
-    fn is_0(&self) -> bool;
-    fn is_r(&self) -> bool;
-    fn is_l(&self) -> bool;
-    fn is_2(&self) -> bool;
-}
-
-#[rustfmt::skip]
-impl<MT: MinoType> Is for MinoState<MT, State0> {
-    fn is_0(&self) -> bool { true }
-    fn is_r(&self) -> bool { false }
-    fn is_l(&self) -> bool { false }
-    fn is_2(&self) -> bool { false }
-}
-
-#[rustfmt::skip]
-impl<MT: MinoType> Is for MinoState<MT, StateR> {
-    fn is_0(&self) -> bool { false }
-    fn is_r(&self) -> bool { true }
-    fn is_l(&self) -> bool { false }
-    fn is_2(&self) -> bool { false }
-}
-
-#[rustfmt::skip]
-impl<MT: MinoType> Is for MinoState<MT, StateL> {
-    fn is_0(&self) -> bool { false }
-    fn is_r(&self) -> bool { false }
-    fn is_l(&self) -> bool { true }
-    fn is_2(&self) -> bool { false }
-}
-
-#[rustfmt::skip]
-impl<MT: MinoType> Is for MinoState<MT, State2> {
-    fn is_0(&self) -> bool { false }
-    fn is_r(&self) -> bool { false }
-    fn is_l(&self) -> bool { false }
-    fn is_2(&self) -> bool { true }
 }
 
 macro_rules! define_mino {
@@ -165,12 +81,7 @@ macro_rules! define_mino {
         define_rotation!(Left, $mino_type, $mino_form, StateL => State2);
         define_rotation!(Left, $mino_type, $mino_form, State2 => StateR);
         define_rotation!(Left, $mino_type, $mino_form, StateR => State0);
-
-        impl MinoFn for MinoState<$mino_type, State0> {}
-        impl MinoFn for MinoState<$mino_type, StateR> {}
-        impl MinoFn for MinoState<$mino_type, State2> {}
-        impl MinoFn for MinoState<$mino_type, StateL> {}
- };
+    };
 }
 
 define_mino!(MinoI, BarTypeMino);
@@ -181,23 +92,7 @@ define_mino!(MinoJ, NormalTypeMino);
 define_mino!(MinoL, NormalTypeMino);
 define_mino!(MinoT, NormalTypeMino);
 
-macro_rules! define_minos {
-    ( $( $name:tt => $state:path ),* $(,)? ) => {
-        #[derive(Debug,  Copy, Clone)]
-        pub enum Minos {
-            $( $name($state), )*
-        }
-        $(
-            impl Into<Minos> for $state {
-                fn into(self) -> Minos {
-                    Minos::$name(self)
-                }
-            }
-        )*
-    }
-}
-
-define_minos!(
+define_mino_aggregation!(
     Is0 => MinoState<MinoI, State0>,
     Os0 => MinoState<MinoO, State0>,
     Ss0 => MinoState<MinoS, State0>,
@@ -228,21 +123,6 @@ define_minos!(
     TsL => MinoState<MinoT, StateL>,
 );
 
-macro_rules! define_first_minos {
-    ( $( $var:tt =>MinoState<$type:tt, $rot:tt> ),* $(,)? ) => {
-        pub const MINOS_SRC: [Minos; 7] = [
-            $(
-                Minos::$var(MinoState::<$type, $rot> {
-                    _mino: $type,
-                    _state: $rot,
-                    x: 3,
-                    y: 3,
-                }),
-            )*
-        ];
-    }
-}
-
 define_first_minos!(
     Is0 => MinoState<MinoI, State0>,
     Os0 => MinoState<MinoO, State0>,
@@ -252,3 +132,14 @@ define_first_minos!(
     Ls0 => MinoState<MinoL, State0>,
     Ts0 => MinoState<MinoT, State0>,
 );
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn test() {
+        let size = std::mem::size_of::<MinoState<MinoO, State0>>();
+        assert_eq!(2, size);
+    }
+}

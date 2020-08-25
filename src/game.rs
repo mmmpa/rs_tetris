@@ -8,7 +8,7 @@ pub struct Game<F: FnMut(GameEvent)> {
     is_landing: bool,
     landing_time: u8,
     lock_time: u8,
-    mino: Option<Minos>,
+    mino: Option<MinoAggregation>,
     minos_index: [u8; 252],
     minos_position: u8,
     spun: bool,
@@ -46,7 +46,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         }
     }
 
-    pub fn mino(&self) -> &Minos {
+    pub fn mino(&self) -> &MinoAggregation {
         &self.mino.as_ref().unwrap()
     }
 
@@ -65,34 +65,34 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
         let mut mino = self.mino.take().unwrap();
         let next = match &mut mino {
-            Minos::Is0(m) => self.action(m, event),
-            Minos::Os0(m) => self.action(m, event),
-            Minos::Ss0(m) => self.action(m, event),
-            Minos::Zs0(m) => self.action(m, event),
-            Minos::Js0(m) => self.action(m, event),
-            Minos::Ls0(m) => self.action(m, event),
-            Minos::Ts0(m) => self.action(m, event),
-            Minos::IsR(m) => self.action(m, event),
-            Minos::OsR(m) => self.action(m, event),
-            Minos::SsR(m) => self.action(m, event),
-            Minos::ZsR(m) => self.action(m, event),
-            Minos::JsR(m) => self.action(m, event),
-            Minos::LsR(m) => self.action(m, event),
-            Minos::TsR(m) => self.action(m, event),
-            Minos::Is2(m) => self.action(m, event),
-            Minos::Os2(m) => self.action(m, event),
-            Minos::Ss2(m) => self.action(m, event),
-            Minos::Zs2(m) => self.action(m, event),
-            Minos::Js2(m) => self.action(m, event),
-            Minos::Ls2(m) => self.action(m, event),
-            Minos::Ts2(m) => self.action(m, event),
-            Minos::IsL(m) => self.action(m, event),
-            Minos::OsL(m) => self.action(m, event),
-            Minos::SsL(m) => self.action(m, event),
-            Minos::ZsL(m) => self.action(m, event),
-            Minos::JsL(m) => self.action(m, event),
-            Minos::LsL(m) => self.action(m, event),
-            Minos::TsL(m) => self.action(m, event),
+            MinoAggregation::Is0(m) => self.action(m, event),
+            MinoAggregation::Os0(m) => self.action(m, event),
+            MinoAggregation::Ss0(m) => self.action(m, event),
+            MinoAggregation::Zs0(m) => self.action(m, event),
+            MinoAggregation::Js0(m) => self.action(m, event),
+            MinoAggregation::Ls0(m) => self.action(m, event),
+            MinoAggregation::Ts0(m) => self.action(m, event),
+            MinoAggregation::IsR(m) => self.action(m, event),
+            MinoAggregation::OsR(m) => self.action(m, event),
+            MinoAggregation::SsR(m) => self.action(m, event),
+            MinoAggregation::ZsR(m) => self.action(m, event),
+            MinoAggregation::JsR(m) => self.action(m, event),
+            MinoAggregation::LsR(m) => self.action(m, event),
+            MinoAggregation::TsR(m) => self.action(m, event),
+            MinoAggregation::Is2(m) => self.action(m, event),
+            MinoAggregation::Os2(m) => self.action(m, event),
+            MinoAggregation::Ss2(m) => self.action(m, event),
+            MinoAggregation::Zs2(m) => self.action(m, event),
+            MinoAggregation::Js2(m) => self.action(m, event),
+            MinoAggregation::Ls2(m) => self.action(m, event),
+            MinoAggregation::Ts2(m) => self.action(m, event),
+            MinoAggregation::IsL(m) => self.action(m, event),
+            MinoAggregation::OsL(m) => self.action(m, event),
+            MinoAggregation::SsL(m) => self.action(m, event),
+            MinoAggregation::ZsL(m) => self.action(m, event),
+            MinoAggregation::JsL(m) => self.action(m, event),
+            MinoAggregation::LsL(m) => self.action(m, event),
+            MinoAggregation::TsL(m) => self.action(m, event),
         };
 
         match next {
@@ -101,7 +101,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         };
     }
 
-    pub fn action(&mut self, mut mino: &mut impl MinoFn, event: Event) -> Option<Minos> {
+    pub fn action(&mut self, mut mino: &mut impl MinoFn, event: Event) -> Option<MinoAggregation> {
         // my_print!("{:?}", event);
 
         match event {
@@ -196,13 +196,13 @@ impl<F: FnMut(GameEvent)> Game<F> {
         }
     }
 
-    pub fn new_mino(&mut self) -> Option<Minos> {
+    pub fn new_mino(&mut self) -> Option<MinoAggregation> {
         let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
         self.minos_position += 1;
         Some(mino)
     }
 
-    fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
+    fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
         self.landing_time += 1;
 
         if self.landing_time > self.lock_time {
@@ -212,7 +212,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         }
     }
 
-    fn reset_previous_state(&mut self) -> Option<Minos> {
+    fn reset_previous_state(&mut self) -> Option<MinoAggregation> {
         self.spun = false;
         self.is_landing = false;
         self.landing_time = 0;
@@ -220,7 +220,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     // TODO: detect Tetris or T-spin, etc.
-    fn lock(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
+    fn lock(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
         self.reset_previous_state();
         let mut filled_count = 0;
         let mut filled = [0; 4];
@@ -241,7 +241,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         self.new_mino()
     }
 
-    fn land(&mut self, mino: &mut impl MinoFn) -> Option<Minos> {
+    fn land(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
         // lock when cannot move down at all
         if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
             return self.lock(mino);
@@ -269,9 +269,9 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     fn try_rotate(
         &mut self,
-        mut rotated: impl AbsoluteCell + Into<Minos>,
+        mut rotated: impl withCell + Into<MinoAggregation>,
         offsets: &[(i8, i8)],
-    ) -> Result<Minos, ()> {
+    ) -> Result<MinoAggregation, ()> {
         let (x, y) = rotated.pos();
         for (offset_x, offset_y) in offsets {
             rotated.absolute((x + offset_x, y + offset_y));
@@ -324,7 +324,7 @@ pub enum Event {
 
 pub enum GameEvent {
     Locked,
-    ChangeNextMinos,
+    ChangeNextMinoAggregation,
     Overflow,
 }
 
@@ -390,30 +390,30 @@ pub mod test_uti {
             .join("")
     }
 
-    pub fn mut_with_absolute_cells<F>(mino: &Minos, f: F)
+    pub fn mut_with_absolute_cells<F>(mino: &MinoAggregation, f: F)
     where
         F: FnMut(i8, i8),
     {
         define_macro_state_method!(mino, mut_with_absolute_cells(f));
     }
 
-    pub fn get_mino_pos(mino: &Minos) -> (i8, i8) {
+    pub fn get_mino_pos(mino: &MinoAggregation) -> (i8, i8) {
         define_macro_state_method!(mino, pos())
     }
 
-    pub fn mino_is_0(mino: &Minos) -> bool {
+    pub fn mino_is_0(mino: &MinoAggregation) -> bool {
         define_macro_state_method!(mino, is_0())
     }
 
-    pub fn mino_is_r(mino: &Minos) -> bool {
+    pub fn mino_is_r(mino: &MinoAggregation) -> bool {
         define_macro_state_method!(mino, is_r())
     }
 
-    pub fn mino_is_l(mino: &Minos) -> bool {
+    pub fn mino_is_l(mino: &MinoAggregation) -> bool {
         define_macro_state_method!(mino, is_l())
     }
 
-    pub fn mino_is_2(mino: &Minos) -> bool {
+    pub fn mino_is_2(mino: &MinoAggregation) -> bool {
         define_macro_state_method!(mino, is_2())
     }
 }

@@ -6,8 +6,8 @@ pub struct MinoState<MT: MinoType, MF: MinoForm, Rot: RotationState> {
     _mino: MT,
     _form: MF,
     _state: Rot,
-    pub x: i8,
-    pub y: i8,
+    x: i8,
+    y: i8,
 }
 
 pub trait NewWithPos {
@@ -33,12 +33,12 @@ impl<MT: MinoType, MF: MinoForm, Rot: RotationState> NewWithPos for MinoState<MT
 }
 
 pub trait MinoFn:
-    MinoCore + Right + Left + Cell + AbsoluteCell + Rotatable + Is + Into<Minos>
+    NewWithPos + Right + Left + Cell + AbsoluteCell + Rotatable + Is + Into<Minos>
 {
 }
 
 /// Provide a mino information for rendering.
-pub trait MinoCore: NewWithPos + Debug {
+pub trait MinoCore {
     type Form: MinoForm;
     type Now: RotationState;
     type Right: RotationState;

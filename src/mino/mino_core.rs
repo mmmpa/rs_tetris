@@ -36,8 +36,6 @@ pub trait MinoFn: MinoCore + Right + Left + Rotatable + Is {}
 
 /// Provide a mino information for rendering.
 pub trait MinoCore: NewWithPos + Into<Minos> + Debug {
-    type Mino: MinoType;
-    type Form: MinoForm;
     type Now: RotationState;
     type Right: RotationState;
     type Side: RotationState;
@@ -156,20 +154,9 @@ macro_rules! define_mino_common {
     };
 }
 
-macro_rules! define_mino_rotation {
-    ( $mino_type:tt, $mino_form:tt, $direction:tt, $from:tt => $to:tt ) => {
-        impl $direction for MinoState<$mino_type, $mino_form, $from> {
-            type Next = MinoState<$mino_type, $mino_form, $to>;
-            type Srs = SrsOffset<$mino_form, $from, $to>;
-        }
-    };
-}
-
 macro_rules! define_mino {
     ( $mino_type:tt, $mino_form:tt ) => {
         impl MinoCore for MinoState<$mino_type, $mino_form, State0> {
-            type Mino = $mino_type;
-            type Form = $mino_form;
             type Now = State0;
             type Right = StateR;
             type Side = State2;
@@ -179,8 +166,6 @@ macro_rules! define_mino {
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, StateR> {
-            type Mino = $mino_type;
-            type Form = $mino_form;
             type Now = StateR;
             type Right = State2;
             type Side = StateL;
@@ -190,8 +175,6 @@ macro_rules! define_mino {
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, StateL> {
-            type Mino = $mino_type;
-            type Form = $mino_form;
             type Now = StateL;
             type Right = State0;
             type Side = StateR;
@@ -201,8 +184,6 @@ macro_rules! define_mino {
         }
 
         impl MinoCore for MinoState<$mino_type, $mino_form, State2> {
-            type Mino = $mino_type;
-            type Form = $mino_form;
             type Now = State2;
             type Right = StateL;
             type Side = State0;
@@ -211,21 +192,21 @@ macro_rules! define_mino {
             define_mino_common!();
         }
 
-        define_mino_rotation!($mino_type, $mino_form, Right, State0 => StateR);
-        define_mino_rotation!($mino_type, $mino_form, Right, StateR => State2);
-        define_mino_rotation!($mino_type, $mino_form, Right, State2 => StateL);
-        define_mino_rotation!($mino_type, $mino_form, Right, StateL => State0);
+        define_mino_right!($mino_type, $mino_form, State0 => StateR);
+        define_mino_right!($mino_type, $mino_form, StateR => State2);
+        define_mino_right!($mino_type, $mino_form, State2 => StateL);
+        define_mino_right!($mino_type, $mino_form, StateL => State0);
 
-        define_mino_rotation!($mino_type, $mino_form, Left, State0 => StateL);
-        define_mino_rotation!($mino_type, $mino_form, Left, StateL => State2);
-        define_mino_rotation!($mino_type, $mino_form, Left, State2 => StateR);
-        define_mino_rotation!($mino_type, $mino_form, Left, StateR => State0);
+        define_mino_left!($mino_type, $mino_form, State0 => StateL);
+        define_mino_left!($mino_type, $mino_form, StateL => State2);
+        define_mino_left!($mino_type, $mino_form, State2 => StateR);
+        define_mino_left!($mino_type, $mino_form, StateR => State0);
 
         impl MinoFn for MinoState<$mino_type, $mino_form, State0> {}
         impl MinoFn for MinoState<$mino_type, $mino_form, StateR> {}
         impl MinoFn for MinoState<$mino_type, $mino_form, State2> {}
         impl MinoFn for MinoState<$mino_type, $mino_form, StateL> {}
-  };
+    };
 }
 
 define_mino!(MinoI, BarTypeMino);

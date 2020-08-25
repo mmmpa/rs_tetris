@@ -1,62 +1,27 @@
 use crate::*;
 
-/// Return state after turning right and offsets list for retry in failure.
-pub trait Right: MinoCore {
-    type Next: MinoCore<
-            Form = Self::Form,
-            Now = Self::Right,
-            Right = Self::Side,
-            Side = Self::Left,
-            Left = Self::Now,
-        > + Right
-        + Left;
-    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Right>;
-
-    fn right(&self) -> (Self::Next, &[(i8, i8)]) {
-        let next = Self::Next::new_with_t(self.pos());
-        let srs = Self::Srs::offset();
-
-        (next, srs)
-    }
-}
-
-/// Return state after turning left and offsets list for retry in failure.
 pub trait Left: MinoCore {
-    type Next: MinoCore<
-            Form = Self::Form,
-            Now = Self::Left,
-            Right = Self::Now,
-            Side = Self::Right,
-            Left = Self::Side,
-        > + Right
+    type Next: MinoCore<Now = Self::Left, Right = Self::Now, Side = Self::Right, Left = Self::Side>
+        + Right
         + Left;
-    type Srs: SrsOffsetExe<Form = Self::Form, Now = Self::Now, Next = Self::Left>;
-
-    fn left(&self) -> (Self::Next, &[(i8, i8)]) {
-        let next = Self::Next::new_with_t(self.pos());
-        let srs = Self::Srs::offset();
-
-        (next, srs)
-    }
+    fn left(&self) -> (Self::Next, &[(i8, i8)]);
 }
 
-pub trait Lefter {
-    type Next;
-    fn lefter(&self) -> (Self::Next, &[(i8, i8)]);
+pub trait Right: MinoCore {
+    type Next: MinoCore<Now = Self::Right, Right = Self::Side, Side = Self::Left, Left = Self::Now>
+        + Right
+        + Left;
+    fn right(&self) -> (Self::Next, &[(i8, i8)]);
 }
 
-pub trait Righter {
-    type Next;
-    fn righter(&self) -> (Self::Next, &[(i8, i8)]);
-}
-
+#[macro_export]
 macro_rules! define_mino_right {
-    ( $mino_form:tt, $from:tt => $to:tt ) => {
-        impl<MT: MinoType> Righter for MinoState<MT, $mino_form, $from> {
-            type Next = MinoState<MT, $mino_form, $to>;
+    ( $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
+        impl Right for MinoState<$mino_type, $mino_form, $from> {
+            type Next = MinoState<$mino_type, $mino_form, $to>;
 
-            fn righter(&self) -> (Self::Next, &[(i8, i8)]) {
-                let next = MinoState::<MT, $mino_form, $to>::new_with(self.x, self.y);
+            fn right(&self) -> (Self::Next, &[(i8, i8)]) {
+                let next = MinoState::<$mino_type, $mino_form, $to>::new_with(self.x, self.y);
                 let srs = SrsOffset::<$mino_form, $from, $to>::offset();
 
                 (next, srs)
@@ -65,13 +30,14 @@ macro_rules! define_mino_right {
     };
 }
 
+#[macro_export]
 macro_rules! define_mino_left {
-    ( $mino_form:tt, $from:tt => $to:tt ) => {
-        impl<MT: MinoType> Lefter for MinoState<MT, $mino_form, $from> {
-            type Next = MinoState<MT, $mino_form, $to>;
+    ( $mino_type:tt, $mino_form:tt, $from:tt => $to:tt ) => {
+        impl Left for MinoState<$mino_type, $mino_form, $from> {
+            type Next = MinoState<$mino_type, $mino_form, $to>;
 
-            fn lefter(&self) -> (Self::Next, &[(i8, i8)]) {
-                let next = MinoState::<MT, $mino_form, $to>::new_with(self.x, self.y);
+            fn left(&self) -> (Self::Next, &[(i8, i8)]) {
+                let next = MinoState::<$mino_type, $mino_form, $to>::new_with(self.x, self.y);
                 let srs = SrsOffset::<$mino_form, $from, $to>::offset();
 
                 (next, srs)
@@ -79,24 +45,6 @@ macro_rules! define_mino_left {
         }
     };
 }
-
-define_mino_right!(BarTypeMino, State0 => StateR);
-define_mino_right!(BarTypeMino, StateR => State2);
-define_mino_right!(BarTypeMino, State2 => StateL);
-define_mino_right!(BarTypeMino, StateL => State0);
-define_mino_left!(BarTypeMino, State0 => StateL);
-define_mino_left!(BarTypeMino, StateL => State2);
-define_mino_left!(BarTypeMino, State2 => StateR);
-define_mino_left!(BarTypeMino, StateR => State0);
-
-define_mino_right!(NormalTypeMino, State0 => StateR);
-define_mino_right!(NormalTypeMino, StateR => State2);
-define_mino_right!(NormalTypeMino, State2 => StateL);
-define_mino_right!(NormalTypeMino, StateL => State0);
-define_mino_left!(NormalTypeMino, State0 => StateL);
-define_mino_left!(NormalTypeMino, StateL => State2);
-define_mino_left!(NormalTypeMino, State2 => StateR);
-define_mino_left!(NormalTypeMino, StateR => State0);
 
 #[cfg(test)]
 mod tests {

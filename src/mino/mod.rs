@@ -1,7 +1,8 @@
+mod rotation;
+
 mod cells;
 mod marker_type;
 mod mino_core;
-mod rotation;
 mod srs_offset;
 
 pub use cells::*;

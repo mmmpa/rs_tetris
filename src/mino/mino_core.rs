@@ -9,9 +9,6 @@ pub struct MinoState<MT: MinoType, Rot: RotationState> {
     y: i8,
 }
 
-pub trait BarMino {}
-pub trait NormalMino {}
-
 pub trait NewWithPos {
     fn new_with(x: i8, y: i8) -> Self;
     fn new_with_t(xy: (i8, i8)) -> Self;

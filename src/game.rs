@@ -7,7 +7,8 @@ use rand::{Rng, SeedableRng};
 
 pub struct Game<F: FnMut(GameEvent)> {
     callback: F,
-    deleted_line: usize,
+    rng: SmallRng,
+
     field: Field,
     is_landing: bool,
     landing_time: u8,
@@ -16,12 +17,19 @@ pub struct Game<F: FnMut(GameEvent)> {
     pub minos_index: [usize; 14],
     pub minos_position: usize,
     spun: bool,
+
+    score: Score,
+
+    alive: bool,
+}
+
+#[derive(Default, Debug)]
+pub struct Score {
+    deleted_line: usize,
     t_spin1: usize,
     t_spin2: usize,
     t_spin3: usize,
     tetris: usize,
-    rng: SmallRng,
-    alive: bool,
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
@@ -32,7 +40,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
         Game {
             callback,
-            deleted_line: 0,
             field: Field::new(),
             is_landing: false,
             landing_time: 0,
@@ -41,10 +48,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
             minos_index,
             minos_position: 0,
             spun: false,
-            t_spin1: 0,
-            t_spin2: 0,
-            t_spin3: 0,
-            tetris: 0,
+            score: Default::default(),
             rng,
             alive: false,
         }

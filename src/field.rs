@@ -1,7 +1,7 @@
 use crate::*;
 use core::mem;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Field {
     counts: [usize; FIELD_H],
     rows: [[bool; FIELD_W]; FIELD_H],
@@ -11,15 +11,7 @@ pub struct Field {
 /// Display must flip vertical.
 impl Field {
     pub fn new() -> Self {
-        let mut rows = [0; FIELD_H];
-        for i in 0..FIELD_H {
-            rows[i] = i;
-        }
-
-        Self {
-            counts: [0; FIELD_H],
-            rows: [[false; FIELD_W]; FIELD_H],
-        }
+        Self::default()
     }
 
     pub fn test(&self, x: usize, y: usize) -> bool {

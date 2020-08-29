@@ -64,7 +64,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let locker = locker.clone();
         let pressed = pressed.clone();
         thread::spawn(move || {
-            let mut game = Game::new(|event| {});
+            let mut game = Game::new([123; 16], |event| match event {
+                GameEvent::ChangeNextMinoAggregation => {}
+                GameEvent::Overflow => {}
+                GameEvent::Locked => {}
+                GameEvent::Next(next_list) => {
+                    let mut stdout = stdout();
+                    next_list.iter().for_each(|i| {
+                        let now = &MINOS_SRC[*i];
+                        write!(stdout, "{}", print_next(now)).unwrap();
+                    })
+                }
+            });
+
+            game.start();
 
             let mut stdout = stdout();
 

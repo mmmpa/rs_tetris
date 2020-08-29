@@ -1,6 +1,10 @@
 use crate::*;
 use core::iter::repeat;
 
+use rand::prelude::SmallRng;
+use rand::seq::SliceRandom;
+use rand::{Rng, SeedableRng};
+
 pub struct Game<F: FnMut(GameEvent)> {
     callback: F,
     deleted_line: usize,
@@ -9,24 +13,23 @@ pub struct Game<F: FnMut(GameEvent)> {
     landing_time: u8,
     lock_time: u8,
     mino: Option<MinoAggregation>,
-    minos_index: [u8; 252],
-    minos_position: u8,
+    pub minos_index: [usize; 14],
+    pub minos_position: usize,
     spun: bool,
     t_spin1: usize,
     t_spin2: usize,
     t_spin3: usize,
     tetris: usize,
+    rng: SmallRng,
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
-    pub fn new(callback: F) -> Self {
-        let mut minos_index = [0; 252];
+    pub fn new(seed: [u8; 16], callback: F) -> Self {
+        let mut minos_index = [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6];
+        let mut rng = SmallRng::from_seed(seed);
 
-        use rand::rngs::StdRng;
-
-        (0..7).cycle().take(252).enumerate().for_each(|(i, n)| {
-            minos_index[i] = n;
-        });
+        minos_index[0..6].shuffle(&mut rng);
+        minos_index[7..14].shuffle(&mut rng);
 
         Game {
             callback,
@@ -43,6 +46,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
             t_spin2: 0,
             t_spin3: 0,
             tetris: 0,
+            rng,
         }
     }
 
@@ -57,8 +61,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
     pub fn rows(&self) -> &[[bool; FIELD_W]; FIELD_H] {
         self.field.rows()
     }
-
-    pub fn right(&mut self) {}
 
     pub fn step(&mut self, event: impl Into<Event>) {
         let event = event.into();
@@ -127,14 +129,14 @@ impl<F: FnMut(GameEvent)> Game<F> {
                     self.land(mino)
                 }
             }
-            e @ Event::RotateR | e @ Event::RotateL => {
+            Event::RotateR | Event::RotateL => {
                 // only for O type mino
                 // to detect T-spin MinoO must always fail to rotate
                 if !mino.is_rotatable() {
                     return None;
                 }
 
-                if e == Event::RotateR {
+                if event == Event::RotateR {
                     let (mut right, offsets) = mino.right();
                     self.try_rotate(right, offsets).ok()
                 } else {
@@ -198,8 +200,34 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     pub fn new_mino(&mut self) -> Option<MinoAggregation> {
         let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
-        self.minos_position += 1;
+        self.forward_minos_position();
+        self.inform_next();
         Some(mino)
+    }
+
+    fn inform_next(&mut self) {
+        (self.callback)(GameEvent::Next(
+            &self.minos_index[self.minos_position..self.minos_position + 3],
+        ));
+    }
+
+    pub fn start(&mut self) {
+        self.inform_next();
+    }
+
+    fn forward_minos_position(&mut self) {
+        self.minos_position += 1;
+
+        if self.minos_position != 7 {
+            return;
+        }
+
+        for i in 0..7 {
+            self.minos_index.swap(i, i + 7)
+        }
+
+        self.minos_index[7..14].shuffle(&mut self.rng);
+        self.minos_position = 0;
     }
 
     fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
@@ -322,8 +350,9 @@ pub enum Event {
     Test(TestEvent),
 }
 
-pub enum GameEvent {
+pub enum GameEvent<'a> {
     Locked,
+    Next(&'a [usize]),
     ChangeNextMinoAggregation,
     Overflow,
 }
@@ -417,6 +446,49 @@ pub mod test_uti {
         define_macro_state_method!(mino, is_2())
     }
 }
+#[cfg(test)]
+mod tests_no_std {
+    use rand::rngs::{SmallRng, StdRng};
+    use rand::{CryptoRng, Rng};
+    use rand::{RngCore, SeedableRng};
+
+    #[test]
+    fn test_shuffle_small() {
+        let mut rng = SmallRng::from_seed([0; 16]);
+        let mut src = [0, 1, 2, 3, 4, 5, 6];
+
+        shuffle(&mut rng, &mut src);
+        assert_eq!([2, 3, 6, 4, 5, 0, 1], src);
+        shuffle(&mut rng, &mut src);
+        assert_eq!([6, 5, 1, 2, 0, 4, 3], src);
+        shuffle(&mut rng, &mut src);
+        assert_eq!([5, 1, 4, 6, 2, 3, 0], src);
+    }
+
+    #[test]
+    fn test_shuffle_std_rng() {
+        let mut rng = StdRng::from_seed([0; 32]);
+        let mut src = [0, 1, 2, 3, 4, 5, 6];
+
+        shuffle_crypt(&mut rng, &mut src);
+        assert_eq!([6, 5, 4, 1, 3, 0, 2], src);
+        shuffle_crypt(&mut rng, &mut src);
+        assert_eq!([4, 2, 5, 6, 0, 1, 3], src);
+        shuffle_crypt(&mut rng, &mut src);
+        assert_eq!([3, 4, 1, 0, 5, 2, 6], src);
+    }
+
+    fn shuffle<T>(rng: &mut impl Rng, data: &mut [T]) {
+        for i in 1..data.len() {
+            let j = rng.gen_range(0, i);
+            data.swap(i, j);
+        }
+    }
+
+    fn shuffle_crypt<T>(rng: &mut (impl Rng + CryptoRng), data: &mut [T]) {
+        shuffle(rng, data)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -427,7 +499,7 @@ mod tests {
 
     #[test]
     fn test_step_i() {
-        let mut game = Game::new(|_| {});
+        let mut game = Game::new([0; 16], |_| {});
 
         {
             game.step(AbsoluteMovement((0, 2)));
@@ -508,6 +580,7 @@ mod tests {
         }
     }
 }
+
 #[cfg(test)]
 mod only_test_method_tests {
     use crate::game::test_uti::*;
@@ -582,7 +655,7 @@ mod only_test_method_tests {
 
     #[test]
     fn test_absolute_rotation() {
-        let mut game = Game::new(|_| {});
+        let mut game = Game::new([0; 16], |_| {});
         let mut mino = MINOS_SRC[0];
 
         game.step(AbsoluteMovement((4, 2)));

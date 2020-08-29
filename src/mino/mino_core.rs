@@ -28,11 +28,15 @@ pub mod mino_fn {
     use crate::*;
 
     pub trait MinoFn:
-        NewWith + Right + Left + WithCell + Rotatable + Into<MinoAggregation>
+        NewWith + Position + Cell + WithCell + Right + Left + Rotatable + Into<MinoAggregation>
     {
     }
 
-    impl<T: NewWith + Right + Left + WithCell + Rotatable + Into<MinoAggregation>> MinoFn for T {}
+    impl<
+            T: NewWith + Position + Cell + WithCell + Right + Left + Rotatable + Into<MinoAggregation>,
+        > MinoFn for T
+    {
+    }
 }
 
 /// with IsState

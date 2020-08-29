@@ -29,4 +29,11 @@ pub use mino::*;
 
 pub const FIELD_W: usize = 10;
 pub const DISPLAY_FIELD_H: usize = 20;
-pub const FIELD_H: usize = DISPLAY_FIELD_H + 3;
+
+// 0 is rotation space
+// 1 is start position
+// 2 is top of display.
+pub const FIELD_H: usize = DISPLAY_FIELD_H + 2;
+
+pub const MINO_FIRST_POSITION: (i8, i8) = (4, 1);
+pub const FIELD_TOP: i8 = 2;

@@ -26,8 +26,8 @@ macro_rules! define_first_minos {
                 MinoAggregation::$var(MinoState::<$type, $rot> {
                     _mino: $type,
                     _state: $rot,
-                    x: 3,
-                    y: 3,
+                    x: MINO_FIRST_POSITION.0,
+                    y: MINO_FIRST_POSITION.1,
                 }),
             )*
         ];

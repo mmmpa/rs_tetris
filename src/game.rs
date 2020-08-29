@@ -21,15 +21,14 @@ pub struct Game<F: FnMut(GameEvent)> {
     t_spin3: usize,
     tetris: usize,
     rng: SmallRng,
+    alive: bool,
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
     pub fn new(seed: [u8; 16], callback: F) -> Self {
-        let mut minos_index = [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6];
         let mut rng = SmallRng::from_seed(seed);
 
-        minos_index[0..6].shuffle(&mut rng);
-        minos_index[7..14].shuffle(&mut rng);
+        let mut minos_index = [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6];
 
         Game {
             callback,
@@ -47,6 +46,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
             t_spin3: 0,
             tetris: 0,
             rng,
+            alive: false,
         }
     }
 
@@ -63,6 +63,10 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     pub fn step(&mut self, event: impl Into<Event>) {
+        if !self.alive {
+            return;
+        }
+
         let event = event.into();
 
         let mut mino = self.mino.take().unwrap();
@@ -211,7 +215,15 @@ impl<F: FnMut(GameEvent)> Game<F> {
         ));
     }
 
+    fn inform_game_over(&mut self) {
+        (self.callback)(GameEvent::Overflow);
+    }
+
     pub fn start(&mut self) {
+        self.minos_index[0..6].shuffle(&mut self.rng);
+        self.minos_index[7..14].shuffle(&mut self.rng);
+        self.alive = true;
+
         self.inform_next();
     }
 
@@ -249,6 +261,15 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
     // TODO: detect Tetris or T-spin, etc.
     fn lock(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
+        if mino.pos().1 < FIELD_TOP {
+            let is_mino_in_display = mino.test_with_absolute_cells(|_, y| y >= FIELD_TOP);
+
+            if !is_mino_in_display {
+                self.alive = false;
+                return None;
+            }
+        }
+
         self.reset_previous_state();
         let mut filled_count = 0;
         let mut filled = [0; 4];
@@ -500,7 +521,7 @@ mod tests {
     #[test]
     fn test_step_i() {
         let mut game = Game::new([0; 16], |_| {});
-
+        game.start();
         {
             game.step(AbsoluteMovement((0, 2)));
             game.step(Event::MoveL);
@@ -656,6 +677,7 @@ mod only_test_method_tests {
     #[test]
     fn test_absolute_rotation() {
         let mut game = Game::new([0; 16], |_| {});
+        game.start();
         let mut mino = MINOS_SRC[0];
 
         game.step(AbsoluteMovement((4, 2)));

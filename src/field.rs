@@ -14,7 +14,10 @@ impl Field {
         Self::default()
     }
 
-    pub fn test(&self, x: usize, y: usize) -> bool {
+    pub fn test(&self, x: i8, y: i8) -> bool {
+        let x = x as usize;
+        let y = y as usize;
+
         if x < 0 || FIELD_W <= x || y < 0 || FIELD_H <= y {
             return true;
         }
@@ -22,35 +25,37 @@ impl Field {
         self.rows[y][x]
     }
 
-    // return true if fill a row
-    pub fn set(&mut self, x: usize, y: usize) -> bool {
-        self.rows[y][x] = true;
-        self.counts[y] += 1;
-        self.counts[y] == FIELD_W
+    pub fn set(&mut self, x: i8, y: i8) {
+        self.rows[y as usize][x as usize] = true;
+        self.counts[y as usize] += 1;
     }
 
-    pub fn delete(&mut self, y: usize) -> bool {
-        if self.counts[y] != FIELD_W {
+    pub fn is_filled(&self, y: i8) -> bool {
+        self.counts[y as usize] == FIELD_W
+    }
+
+    pub fn delete(&mut self, y: i8) -> bool {
+        if self.counts[y as usize] != FIELD_W {
             return false;
         }
 
-        self.counts[y] = 0;
-        self.rows[y] = [false; FIELD_W];
+        self.counts[y as usize] = 0;
+        self.rows[y as usize] = [false; FIELD_W];
 
         true
     }
 
-    // MUST float from above after delete multiline
-    pub fn float(&mut self, y: usize) {
+    /// MUST float from above after delete multiline
+    pub fn float(&mut self, y: i8) {
         let mut now = y;
         while now > 0 {
             let up_row = now - 1;
-            if self.counts[up_row] == 0 {
+            if self.counts[up_row as usize] == 0 {
                 return;
             }
 
-            self.rows.swap(now, up_row);
-            self.counts.swap(now, up_row);
+            self.rows.swap(now as usize, up_row as usize);
+            self.counts.swap(now as usize, up_row as usize);
 
             now -= 1;
         }
@@ -71,7 +76,7 @@ mod filed_tester {
 
         for y in 0..h {
             for x in 0..FIELD_W {
-                if f.test(x, y) {
+                if f.test(x as i8, y as i8) {
                     canvas[y as usize][x as usize] = "⬛";
                 }
             }
@@ -150,7 +155,7 @@ mod tests {
     fn test_delete() {
         let mut f = Field::new();
 
-        for x in 0..FIELD_W {
+        for x in 0..(FIELD_W as i8) {
             f.set(x, 2);
         }
         f.set(3, 1);

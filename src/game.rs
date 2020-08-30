@@ -9,27 +9,42 @@ pub struct Game<F: FnMut(GameEvent)> {
     callback: F,
     rng: SmallRng,
 
-    field: Field,
-    is_landing: bool,
-    landing_time: u8,
-    lock_time: u8,
+    // Indexes of MINOS_SRC that has 2 laps of shuffled 7 minos.
+    // 7..14 is a next lap.
+    minos_index: [usize; 14],
+
+    // Point a next mino.
+    // Always 0..6.
+    minos_position: usize,
+
+    // A mino user is controlling.
+    // Option is just for handling multiple mutable ownership in a struct.
+    // Always mino is a Some.
     mino: Option<MinoAggregation>,
-    pub minos_index: [usize; 14],
-    pub minos_position: usize,
+
+    field: Field,
+
+    alive: bool,
+    is_landing: bool,
+    landing_wait_count: u8,
     spun: bool,
 
     score: Score,
-
-    alive: bool,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Score {
-    deleted_line: usize,
-    t_spin1: usize,
-    t_spin2: usize,
-    t_spin3: usize,
-    tetris: usize,
+    pub deleted_line: usize,
+    pub t_spin1: usize,
+    pub t_spin2: usize,
+    pub t_spin3: usize,
+    pub tetris: usize,
+}
+
+impl Score {
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl<F: FnMut(GameEvent)> Game<F> {
@@ -40,18 +55,43 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
         Game {
             callback,
-            field: Field::new(),
-            is_landing: false,
-            landing_time: 0,
-            lock_time: 2,
-            mino: Some(MINOS_SRC[0]),
+            rng,
+
             minos_index,
             minos_position: 0,
-            spun: false,
-            score: Default::default(),
-            rng,
+
+            mino: Some(MINOS_SRC[0]),
+
+            field: Field::new(),
+
             alive: false,
+            is_landing: false,
+            landing_wait_count: 0,
+            spun: false,
+
+            score: Default::default(),
         }
+    }
+
+    pub fn start(&mut self) {
+        self.minos_index[0..6].shuffle(&mut self.rng);
+        self.minos_index[7..14].shuffle(&mut self.rng);
+        self.minos_position = 0;
+
+        self.mino = self.new_mino();
+
+        self.field = Field::new();
+
+        self.alive = true;
+        self.is_landing = false;
+        self.landing_wait_count = 0;
+        self.spun = false;
+
+        self.score = Score::new();
+
+        self.inform_next();
+        self.inform_score_change();
+        self.inform_game_start();
     }
 
     pub fn mino(&self) -> &MinoAggregation {
@@ -66,11 +106,178 @@ impl<F: FnMut(GameEvent)> Game<F> {
         self.field.rows()
     }
 
-    pub fn step(&mut self, event: impl Into<Event>) {
-        if !self.alive {
+    pub fn new_mino(&mut self) -> Option<MinoAggregation> {
+        let mino = self.next_mino();
+        self.forward_minos_position();
+        self.inform_next();
+        Some(mino)
+    }
+
+    fn next_mino(&self) -> MinoAggregation {
+        let index = self.minos_index[self.minos_position as usize] as usize;
+        MINOS_SRC[index]
+    }
+
+    fn game_over(&mut self) -> Option<MinoAggregation> {
+        self.alive = false;
+        self.inform_game_over();
+        None
+    }
+
+    fn inform(&mut self, event: GameEvent) {
+        (self.callback)(event)
+    }
+
+    fn inform_game_start(&mut self) {
+        self.inform(GameEvent::Start);
+    }
+
+    fn inform_game_over(&mut self) {
+        self.inform(GameEvent::Overflow);
+    }
+
+    fn inform_score_change(&mut self) {
+        self.inform(GameEvent::ScoreChange(self.score.clone()));
+    }
+
+    fn inform_next(&mut self) {
+        // to avoid borrow checker
+        (self.callback)(GameEvent::Next(
+            &self.minos_index[self.minos_position..self.minos_position + 3],
+        ));
+    }
+
+    fn forward_minos_position(&mut self) {
+        self.minos_position += 1;
+
+        if self.minos_position != 7 {
             return;
         }
 
+        for i in 0..7 {
+            self.minos_index.swap(i, i + 7)
+        }
+
+        self.minos_index[7..14].shuffle(&mut self.rng);
+        self.minos_position = 0;
+    }
+
+    fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
+        self.landing_wait_count += 1;
+
+        if self.landing_wait_count > LOCKING_TIME {
+            self.lock(mino)
+        } else {
+            None
+        }
+    }
+
+    fn reset_previous_state(&mut self) -> Option<MinoAggregation> {
+        self.spun = false;
+        self.is_landing = false;
+        self.landing_wait_count = 0;
+        None
+    }
+
+    /// return false if all cells are out of display
+    fn test_mino_in_display(&mut self, mino: &mut impl MinoFn) -> bool {
+        if mino.pos().1 >= FIELD_TOP {
+            true
+        } else {
+            mino.test_with_absolute_cells(|_, y| y >= FIELD_TOP)
+        }
+    }
+
+    // TODO: detect Tetris or T-spin, etc.
+    fn lock(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
+        if !self.test_mino_in_display(mino) {
+            return self.game_over();
+        }
+
+        self.reset_previous_state();
+
+        let mut filled_count = 0;
+        let mut filled_rows = [0; 4];
+
+        mino.mut_with_absolute_cells(|x, y| {
+            self.field.set(x, y);
+            if self.field.is_filled(y) {
+                filled_rows[filled_count] = y;
+                filled_count += 1;
+            }
+        });
+
+        if filled_count != 0 {
+            self.score.deleted_line += filled_count;
+
+            if filled_count == 4 {
+                self.score.tetris += 1;
+            } else if self.spun {
+                match filled_count {
+                    1 => self.score.t_spin1 += 1,
+                    2 => self.score.t_spin2 += 1,
+                    3 => self.score.t_spin3 += 1,
+                    _ => unreachable!(),
+                }
+            }
+
+            self.inform_score_change();
+        }
+
+        while filled_count > 0 {
+            filled_count -= 1;
+            let row = filled_rows[filled_count];
+            self.field.delete(row);
+            self.field.float(row);
+        }
+
+        self.new_mino()
+    }
+
+    fn land(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
+        // lock when cannot move down at all
+        if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
+            return self.lock(mino);
+        }
+
+        loop {
+            if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
+                break;
+            }
+        }
+
+        self.reset_previous_state();
+        self.is_landing = true;
+        None
+    }
+
+    fn try_move(&mut self, moving: &mut impl MinoFn, offset: Offset) -> Result<(), ()> {
+        moving.offset(offset.plus);
+        if moving.test_with_absolute_cells(|x, y| self.field.test(x, y)) {
+            moving.offset(offset.minus);
+            return Err(());
+        }
+        Ok(())
+    }
+
+    fn try_rotate(
+        &mut self,
+        mut rotated: impl WithCell + Into<MinoAggregation>,
+        offsets: &[(i8, i8)],
+    ) -> Result<MinoAggregation, ()> {
+        let (x, y) = rotated.pos();
+        for (offset_x, offset_y) in offsets {
+            rotated.absolute((x + offset_x, y + offset_y));
+            if !rotated.test_with_absolute_cells(|x, y| self.field.test(x, y)) {
+                self.reset_previous_state();
+                self.spun = true;
+                return Ok(rotated.into());
+            }
+        }
+        Err(())
+    }
+
+    pub fn step(&mut self, event: impl Into<Event>) {
         let event = event.into();
 
         let mut mino = self.mino.take().unwrap();
@@ -205,137 +412,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
             },
         }
     }
-
-    pub fn new_mino(&mut self) -> Option<MinoAggregation> {
-        let mino = MINOS_SRC[self.minos_index[self.minos_position as usize] as usize];
-        self.forward_minos_position();
-        self.inform_next();
-        Some(mino)
-    }
-
-    fn inform_next(&mut self) {
-        (self.callback)(GameEvent::Next(
-            &self.minos_index[self.minos_position..self.minos_position + 3],
-        ));
-    }
-
-    fn inform_game_over(&mut self) {
-        (self.callback)(GameEvent::Overflow);
-    }
-
-    pub fn start(&mut self) {
-        self.minos_index[0..6].shuffle(&mut self.rng);
-        self.minos_index[7..14].shuffle(&mut self.rng);
-        self.alive = true;
-
-        self.inform_next();
-    }
-
-    fn forward_minos_position(&mut self) {
-        self.minos_position += 1;
-
-        if self.minos_position != 7 {
-            return;
-        }
-
-        for i in 0..7 {
-            self.minos_index.swap(i, i + 7)
-        }
-
-        self.minos_index[7..14].shuffle(&mut self.rng);
-        self.minos_position = 0;
-    }
-
-    fn wait_locking(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
-        self.landing_time += 1;
-
-        if self.landing_time > self.lock_time {
-            self.lock(mino)
-        } else {
-            None
-        }
-    }
-
-    fn reset_previous_state(&mut self) -> Option<MinoAggregation> {
-        self.spun = false;
-        self.is_landing = false;
-        self.landing_time = 0;
-        None
-    }
-
-    // TODO: detect Tetris or T-spin, etc.
-    fn lock(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
-        if mino.pos().1 < FIELD_TOP {
-            let is_mino_in_display = mino.test_with_absolute_cells(|_, y| y >= FIELD_TOP);
-
-            if !is_mino_in_display {
-                self.alive = false;
-                return None;
-            }
-        }
-
-        self.reset_previous_state();
-        let mut filled_count = 0;
-        let mut filled = [0; 4];
-        mino.mut_with_absolute_cells(|x, y| {
-            if self.field.set(x as usize, y as usize) {
-                filled[filled_count] = y as usize;
-                filled_count += 1;
-            }
-        });
-
-        while filled_count > 0 {
-            filled_count -= 1;
-            let row = filled[filled_count];
-            self.field.delete(row);
-            self.field.float(row);
-        }
-
-        self.new_mino()
-    }
-
-    fn land(&mut self, mino: &mut impl MinoFn) -> Option<MinoAggregation> {
-        // lock when cannot move down at all
-        if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
-            return self.lock(mino);
-        }
-
-        loop {
-            if let Err(_) = self.try_move(mino, OFFSET_DOWN) {
-                break;
-            }
-        }
-
-        self.reset_previous_state();
-        self.is_landing = true;
-        None
-    }
-
-    fn try_move(&mut self, moving: &mut impl MinoFn, offset: Offset) -> Result<(), ()> {
-        moving.offset(offset.plus);
-        if moving.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-            moving.offset(offset.minus);
-            return Err(());
-        }
-        Ok(())
-    }
-
-    fn try_rotate(
-        &mut self,
-        mut rotated: impl WithCell + Into<MinoAggregation>,
-        offsets: &[(i8, i8)],
-    ) -> Result<MinoAggregation, ()> {
-        let (x, y) = rotated.pos();
-        for (offset_x, offset_y) in offsets {
-            rotated.absolute((x + offset_x, y + offset_y));
-            if !rotated.test_with_absolute_cells(|x, y| self.field.test(x as usize, y as usize)) {
-                self.reset_previous_state();
-                self.spun = true;
-                return Ok(rotated.into());
-            }
-        }
-        Err(())
-    }
 }
 
 struct Offset {
@@ -376,7 +452,8 @@ pub enum Event {
 }
 
 pub enum GameEvent<'a> {
-    Locked,
+    Start,
+    ScoreChange(Score),
     Next(&'a [usize]),
     ChangeNextMinoAggregation,
     Overflow,
@@ -471,49 +548,10 @@ pub mod test_uti {
         define_macro_state_method!(mino, is_2())
     }
 }
+
+/// This seed generate shuffled index that has MinoI as first.
 #[cfg(test)]
-mod tests_no_std {
-    use rand::rngs::{SmallRng, StdRng};
-    use rand::{CryptoRng, Rng};
-    use rand::{RngCore, SeedableRng};
-
-    #[test]
-    fn test_shuffle_small() {
-        let mut rng = SmallRng::from_seed([0; 16]);
-        let mut src = [0, 1, 2, 3, 4, 5, 6];
-
-        shuffle(&mut rng, &mut src);
-        assert_eq!([2, 3, 6, 4, 5, 0, 1], src);
-        shuffle(&mut rng, &mut src);
-        assert_eq!([6, 5, 1, 2, 0, 4, 3], src);
-        shuffle(&mut rng, &mut src);
-        assert_eq!([5, 1, 4, 6, 2, 3, 0], src);
-    }
-
-    #[test]
-    fn test_shuffle_std_rng() {
-        let mut rng = StdRng::from_seed([0; 32]);
-        let mut src = [0, 1, 2, 3, 4, 5, 6];
-
-        shuffle_crypt(&mut rng, &mut src);
-        assert_eq!([6, 5, 4, 1, 3, 0, 2], src);
-        shuffle_crypt(&mut rng, &mut src);
-        assert_eq!([4, 2, 5, 6, 0, 1, 3], src);
-        shuffle_crypt(&mut rng, &mut src);
-        assert_eq!([3, 4, 1, 0, 5, 2, 6], src);
-    }
-
-    fn shuffle<T>(rng: &mut impl Rng, data: &mut [T]) {
-        for i in 1..data.len() {
-            let j = rng.gen_range(0, i);
-            data.swap(i, j);
-        }
-    }
-
-    fn shuffle_crypt<T>(rng: &mut (impl Rng + CryptoRng), data: &mut [T]) {
-        shuffle(rng, data)
-    }
-}
+pub const TEST_SEED: [u8; 16] = [5; 16];
 
 #[cfg(test)]
 mod tests {
@@ -524,7 +562,7 @@ mod tests {
 
     #[test]
     fn test_step_i() {
-        let mut game = Game::new([0; 16], |_| {});
+        let mut game = Game::new(TEST_SEED, |_| {});
         game.start();
         {
             game.step(AbsoluteMovement((0, 2)));
@@ -680,7 +718,7 @@ mod only_test_method_tests {
 
     #[test]
     fn test_absolute_rotation() {
-        let mut game = Game::new([0; 16], |_| {});
+        let mut game = Game::new(TEST_SEED, |_| {});
         game.start();
         let mut mino = MINOS_SRC[0];
 

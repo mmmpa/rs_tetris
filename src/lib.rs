@@ -1,6 +1,5 @@
 #![allow(warnings)]
 #![no_std]
-#![feature(concat_idents)]
 
 #[cfg(test)]
 macro_rules! my_print {

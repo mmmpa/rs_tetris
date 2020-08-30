@@ -1,9 +1,6 @@
 #![allow(warnings)]
 
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate tetris;
 
 use tetris::*;
@@ -183,8 +180,7 @@ fn spawn_game_thread(reg_ref: RegistryRef) {
     });
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (registry, receiver) = spawn_stdin_listener();
 
     spawn_game_thread(registry);

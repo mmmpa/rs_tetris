@@ -31,8 +31,6 @@ pub struct PressedKeyRegistry {
     pub rotate_l: bool,
     pub rotate_r: bool,
     pub space: bool,
-
-    iterator: u8,
 }
 
 impl PressedKeyRegistry {

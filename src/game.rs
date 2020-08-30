@@ -365,6 +365,8 @@ impl<F: FnMut(GameEvent)> Game<F> {
             },
             Event::TimeGo => self.action(mino, Event::FreeFall),
 
+            Event::Nop => None,
+
             #[cfg(test)]
             Event::Test(test_event) => match test_event {
                 TestEvent::AbsoluteMovement(pos) => {
@@ -447,6 +449,8 @@ pub enum Event {
     TimeGo,
     FreeFall,
 
+    Nop,
+
     #[cfg(test)]
     Test(TestEvent),
 }
@@ -457,6 +461,7 @@ pub enum GameEvent<'a> {
     Next(&'a [usize]),
     ChangeNextMinoAggregation,
     Overflow,
+    Nop,
 }
 
 #[derive(Debug, Eq, PartialEq)]

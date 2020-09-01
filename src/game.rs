@@ -26,8 +26,12 @@ pub struct Game<F: FnMut(GameEvent)> {
 
     alive: bool,
     is_landing: bool,
+    is_locked: bool,
     landing_wait_count: u8,
+    locking_wait_count: u8,
     spun: bool,
+
+    delete_row: [i8; 4],
 
     score: Score,
 }
@@ -66,8 +70,12 @@ impl<F: FnMut(GameEvent)> Game<F> {
 
             alive: false,
             is_landing: false,
+            is_locked: false,
             landing_wait_count: 0,
+            locking_wait_count: 0,
             spun: false,
+
+            delete_row: [-1; 4],
 
             score: Default::default(),
         }
@@ -194,15 +202,15 @@ impl<F: FnMut(GameEvent)> Game<F> {
             return self.game_over();
         }
 
-        self.reset_previous_state();
+        self.is_locked = true;
 
         let mut filled_count = 0;
-        let mut filled_rows = [0; 4];
+        self.delete_row = [-1; 4];
 
         mino.mut_with_absolute_cells(|x, y| {
             self.field.set(x, y);
             if self.field.is_filled(y) {
-                filled_rows[filled_count] = y;
+                self.delete_row[filled_count] = y;
                 filled_count += 1;
             }
         });
@@ -224,11 +232,25 @@ impl<F: FnMut(GameEvent)> Game<F> {
             self.inform_score_change();
         }
 
-        while filled_count > 0 {
-            filled_count -= 1;
-            let row = filled_rows[filled_count];
-            self.field.delete(row);
-            self.field.float(row);
+        self.reset_previous_state();
+
+        None
+    }
+
+    fn erase(&mut self) -> Option<MinoAggregation> {
+        if self.locking_wait_count < LOCKING_WAIT_TIME {
+            self.locking_wait_count += 1;
+            return None;
+        }
+
+        self.is_locked = false;
+        self.locking_wait_count = 0;
+
+        for row in self.delete_row.iter().rev().copied() {
+            if row != -1 {
+                self.field.delete(row);
+                self.field.float(row);
+            }
         }
 
         self.new_mino()
@@ -247,8 +269,7 @@ impl<F: FnMut(GameEvent)> Game<F> {
         }
 
         self.reset_previous_state();
-        self.is_landing = true;
-        None
+        self.lock(mino)
     }
 
     fn try_move(&mut self, moving: &mut impl MinoFn, offset: Offset) -> Result<(), ()> {
@@ -278,6 +299,14 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     pub fn step(&mut self, event: impl Into<Event>) {
+        if self.is_locked {
+            match self.erase() {
+                None => {}
+                Some(mino) => self.mino = Some(mino),
+            }
+            return;
+        }
+
         let event = event.into();
 
         let mut mino = self.mino.take().unwrap();
@@ -319,8 +348,6 @@ impl<F: FnMut(GameEvent)> Game<F> {
     }
 
     pub fn action(&mut self, mut mino: &mut impl MinoFn, event: Event) -> Option<MinoAggregation> {
-        // my_print!("{:?}", event);
-
         match event {
             Event::MoveR => {
                 self.try_move(mino, OFFSET_RIGHT);

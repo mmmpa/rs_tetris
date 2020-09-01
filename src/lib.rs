@@ -38,3 +38,4 @@ pub const MINO_FIRST_POSITION: (i8, i8) = (4, 1);
 pub const FIELD_TOP: i8 = 2;
 
 pub const LOCKING_TIME: u8 = 2;
+pub const LOCKING_WAIT_TIME: u8 = 1;
